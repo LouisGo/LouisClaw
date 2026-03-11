@@ -1,0 +1,26 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "/ABSOLUTE/PATH/TO/LouisClaw",
+      "model": {
+        "primary": "openai/gpt-5.4"
+      },
+      "models": {
+        "openai/gpt-5.4": {}
+      }
+    }
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "loopback",
+    "port": 18789,
+    "auth": {
+      "mode": "token"
+    }
+  },
+  "skills": {
+    "install": {
+      "nodeManager": "npm"
+    }
+  }
+}

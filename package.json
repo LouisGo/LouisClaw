@@ -1,0 +1,29 @@
+{
+  "name": "louis-claw",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/app/cli.ts",
+    "add": "node dist/app/cli.js add",
+    "watch": "node dist/app/cli.js watch",
+    "process": "node dist/app/cli.js process",
+    "digest": "node dist/app/cli.js digest",
+    "run": "node dist/app/cli.js run",
+    "status": "node dist/app/cli.js status",
+    "export:siyuan": "node dist/app/cli.js export-siyuan"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "commander": "^14.0.1",
+    "dotenv": "^16.6.1",
+    "gray-matter": "^4.0.3",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.6.3"
+  }
+}

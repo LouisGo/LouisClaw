@@ -1,0 +1,9 @@
+{
+  "source": "manual",
+  "device": "macbook",
+  "capture_time": "2026-03-11T15:00:00+08:00",
+  "content_type": "link",
+  "title": "文章标题，可选",
+  "url": "https://example.com/article",
+  "raw_content": "这里放原始文本、备注、摘录或你自己的判断。"
+}
