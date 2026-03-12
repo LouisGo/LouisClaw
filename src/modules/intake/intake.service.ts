@@ -9,9 +9,9 @@ import { normalizeContent } from "../../shared/text.js";
 export class IntakeService {
   constructor(private readonly config: AppConfig) {}
 
-  enqueue(input: IntakeInput): string {
+  enqueue(input: IntakeInput, targetDir = this.config.paths.inbox): string {
     const stamp = `${compactTimestamp()}_${sha1(JSON.stringify(input)).slice(0, 6)}`;
-    const filePath = path.join(this.config.paths.inbox, `${stamp}.json`);
+    const filePath = path.join(targetDir, `${stamp}.json`);
     writeJsonFile(filePath, input);
     return filePath;
   }

@@ -16,14 +16,32 @@ const envSchema = z.object({
   SIYUAN_EXPORT_ROOT: z.string().optional(),
   ENABLE_SIYUAN_EXPORT: z.enum(["true", "false"]).optional(),
   EXPORT_ROOT: z.string().optional(),
-  ENABLE_IM_ATTACHMENT_EXPORT: z.enum(["true", "false"]).optional()
+  ENABLE_IM_ATTACHMENT_EXPORT: z.enum(["true", "false"]).optional(),
+  MARKDOWN_PULL_SOURCES: z.string().optional()
 });
+
+const markdownSourceSchema = z.object({
+  path: z.string().min(1),
+  source: z.string().min(1).optional(),
+  device: z.string().min(1).optional(),
+  title: z.string().min(1).optional()
+});
+
+export interface MarkdownPullSourceConfig {
+  path: string;
+  source: string;
+  device: string;
+  title?: string;
+}
 
 export interface AppConfig {
   workspaceRoot: string;
   flags: {
     enableSiYuanExport: boolean;
     enableImAttachmentExport: boolean;
+  };
+  markdownPull: {
+    sources: MarkdownPullSourceConfig[];
   };
   ai: {
     classifierMode: "auto" | "heuristic" | "llm";
@@ -33,6 +51,7 @@ export interface AppConfig {
   };
   paths: {
     data: string;
+    landing: string;
     inbox: string;
     raw: string;
     items: string;
@@ -52,12 +71,16 @@ export function loadConfig(): AppConfig {
   const workspaceRoot = path.resolve(env.WORKSPACE_ROOT || process.cwd());
   const dataRoot = path.join(workspaceRoot, "data");
   const exportsRoot = path.resolve(workspaceRoot, env.EXPORT_ROOT || "data/exports");
+  const markdownPullSources = parseMarkdownPullSources(env.MARKDOWN_PULL_SOURCES, workspaceRoot);
 
   const config: AppConfig = {
     workspaceRoot,
     flags: {
       enableSiYuanExport: env.ENABLE_SIYUAN_EXPORT === "true",
       enableImAttachmentExport: env.ENABLE_IM_ATTACHMENT_EXPORT !== "false"
+    },
+    markdownPull: {
+      sources: markdownPullSources
     },
     ai: {
       classifierMode: env.CLASSIFIER_MODE || "auto",
@@ -67,6 +90,7 @@ export function loadConfig(): AppConfig {
     },
     paths: {
       data: dataRoot,
+      landing: path.join(dataRoot, "landing"),
       inbox: path.join(dataRoot, "inbox"),
       raw: path.join(dataRoot, "raw"),
       items: path.join(dataRoot, "items"),
@@ -87,6 +111,7 @@ export function loadConfig(): AppConfig {
 
 function ensureDirectories(config: AppConfig): void {
   ensureDir(config.paths.data);
+  ensureDir(config.paths.landing);
   ensureDir(config.paths.inbox);
   ensureDir(config.paths.raw);
   ensureDir(config.paths.items);
@@ -97,4 +122,19 @@ function ensureDirectories(config: AppConfig): void {
   ensureDir(config.paths.exportFollowUps);
   ensureDir(config.paths.state);
   ensureDir(config.paths.logs);
+}
+
+function parseMarkdownPullSources(raw: string | undefined, workspaceRoot: string): MarkdownPullSourceConfig[] {
+  if (!raw) {
+    return [];
+  }
+
+  const parsed = z.array(markdownSourceSchema).parse(JSON.parse(raw));
+
+  return parsed.map((entry) => ({
+    path: path.resolve(workspaceRoot, entry.path),
+    source: entry.source || "markdown_pull",
+    device: entry.device || "local",
+    title: entry.title
+  }));
 }

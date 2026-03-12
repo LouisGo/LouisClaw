@@ -12,6 +12,8 @@
     "digest": "node dist/app/cli.js digest",
     "run": "node dist/app/cli.js run",
     "status": "node dist/app/cli.js status",
+    "task": "node dist/app/cli.js task",
+    "schedule": "node dist/app/cli.js schedule",
     "export:siyuan": "node dist/app/cli.js export-siyuan"
   },
   "dependencies": {

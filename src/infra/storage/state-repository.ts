@@ -10,6 +10,17 @@ export interface SiYuanMap {
   [itemId: string]: string;
 }
 
+export interface MarkdownSourceStateEntry {
+  size: number;
+  mtimeMs: number;
+  contentHash: string;
+  lastImportedAt?: string;
+}
+
+export interface MarkdownSourceState {
+  [sourcePath: string]: MarkdownSourceStateEntry;
+}
+
 export class StateRepository {
   constructor(private readonly config: AppConfig) {}
 
@@ -27,5 +38,13 @@ export class StateRepository {
 
   saveSiYuanMap(map: SiYuanMap): void {
     writeJsonFile(path.join(this.config.paths.state, "siyuan-map.json"), map);
+  }
+
+  loadMarkdownSourceState(): MarkdownSourceState {
+    return readJsonFile<MarkdownSourceState>(path.join(this.config.paths.state, "markdown-source-state.json")) || {};
+  }
+
+  saveMarkdownSourceState(state: MarkdownSourceState): void {
+    writeJsonFile(path.join(this.config.paths.state, "markdown-source-state.json"), state);
   }
 }

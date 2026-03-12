@@ -21,28 +21,128 @@ Personal information-flow pipeline scaffold for local-first capture, digesting, 
 - `npm run build`
 - `npm run dev -- add --type text --content "hello"`
 - `npm run add -- --type text --content "hello" --source mac --device macbook`
+- `npm run add -- --type code --file ./snippet.ts --source mac --device macbook`
 - `npm run watch`
 - `npm run process`
 - `npm run digest`
 - `npm run run`
 - `npm run status`
+- `npm run task -- list`
+- `npm run task -- run status_overview`
+- `npm run schedule -- list`
 - `npm run export:siyuan`
 
 ## Inbox templates
 
 - `templates/inbox/item.template.md`: suitable for manual capture and later editing
 - `templates/inbox/item.template.json`: suitable for scripts, shortcuts, and automation
-- `data/inbox/` now accepts both `.md` and `.json`
+- `data/landing/` is the local drop-zone for external/manual inputs
+- `data/inbox/` is the internal normalized processing queue and accepts `.md`, `.json`, and `.txt`
 
 Markdown inbox files use frontmatter for metadata and the body as `raw_content`.
+
+Plain `.txt` inbox files are treated as local manual text captures with safe defaults (`source=manual`, `device=local`, `content_type=text`).
+
+`npm run add` now lands new records in `data/landing/`, and the existing watch/process flow moves supported files into `data/inbox/` before processing.
+
+`data/landing/` currently accepts only `.json`, `.md`, and `.txt`. Unsupported files are left in place and logged as ignored.
 
 ## Example flow
 
 ```bash
 npm run add -- --type text --content "研究一下如何把长消息改成简介加 markdown 附件" --source mac --device macbook
+npm run add -- --type code --file ./snippet.ts --source mac --device macbook
 npm run process
 npm run digest
 ```
+
+## Standard tasks
+
+Use standardized task ids when you want manual execution and future scheduling to share the same underlying implementation.
+
+```bash
+npm run task -- list
+npm run task -- run status_overview
+npm run task -- run process_inbox
+npm run task -- run pull_markdown_sources
+npm run task -- run build_digest
+npm run task -- run daily_pipeline
+```
+
+Current built-in task ids:
+
+- `pull_markdown_sources`
+- `status_overview`
+- `process_inbox`
+- `build_digest`
+- `daily_pipeline`
+- `export_siyuan`
+
+## Standard schedules
+
+Use schedules when you want OpenClaw cron to trigger the same standardized task ids automatically.
+
+```bash
+npm run schedule -- list
+npm run schedule -- install hourly_process_inbox
+npm run schedule -- install hourly_process_inbox --every 2h
+npm run schedule -- install daily_pipeline_evening
+```
+
+Current built-in schedule ids:
+
+- `hourly_process_inbox` -> `process_inbox`
+- `hourly_pull_markdown_sources` -> `pull_markdown_sources`
+- `daily_pipeline_evening` -> `daily_pipeline`
+
+The schedule layer is thin on purpose: it installs or updates OpenClaw cron jobs that tell the agent to run `npm run task -- run <task-id>`.
+
+## Markdown source pull
+
+You can configure one or more local markdown files to be polled and landed into `data/landing/`.
+
+推荐契约：
+
+- 使用单独根目录：`mock-sources/markdown/` 或未来真实同步目录
+- 每个逻辑来源只对应一个稳定的 `.md` 文件
+- 推荐文件名使用稳定的小写 kebab-case 或常见语义名，如：`inbox.md`、`quick-notes.md`、`reading-notes.md`
+- V1 只适合 append-only 追加，不适合频繁改写历史内容
+
+Set `MARKDOWN_PULL_SOURCES` to a JSON array. Example:
+
+```bash
+MARKDOWN_PULL_SOURCES='[
+  {"path":"./documents/inbox.md","source":"markdown_pull","device":"local","title":"Inbox Note"}
+]'
+```
+
+推荐把它写进项目根目录的 `.env`，这样 OpenClaw cron 与手动执行会共用同一份配置。
+
+仓库里已经提供了一个可直接测试的 mock 契约：
+
+- `mock-sources/markdown/inbox.md`
+- `mock-sources/markdown/quick-notes.md`
+- `mock-sources/markdown/reading-notes.md`
+
+如果你使用仓库默认 `.env`，这些 mock 文件会直接作为 markdown pull 的输入源。
+
+Then run:
+
+```bash
+npm run task -- run pull_markdown_sources
+```
+
+V1 behavior:
+
+- first run only seeds source state and does not import historical content
+- later runs import appended suffix content only
+- in-place rewrites are skipped in v1
+
+默认调度顺序：
+
+- `hourly_pull_markdown_sources`: 每小时 `:00`
+- `hourly_process_inbox`: 每小时 `:05`
+- `daily_pipeline_evening`: 每天 `21:10`（Asia/Shanghai）
 
 If you later enable SiYuan export:
 
@@ -106,6 +206,7 @@ Reusable setup docs:
 ## Data directories
 
 - `data/inbox/`: intake files
+- `data/landing/`: local landing files waiting to enter inbox
 - `data/raw/`: raw snapshots
 - `data/items/`: structured items
 - `data/digests/`: generated digests
@@ -117,5 +218,5 @@ Reusable setup docs:
 
 - SiYuan integration is incremental-only.
 - IM attachments never go into SiYuan directories.
-- `npm run watch` uses `chokidar` to process new inbox files.
+- `npm run watch` uses `chokidar` to move supported files from `data/landing/` into `data/inbox/`, then process inbox files.
 - CLI parsing uses `commander`, validation uses `zod`, env loading uses `dotenv`.

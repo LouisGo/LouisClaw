@@ -10,15 +10,23 @@ Use this skill when the user wants to inspect, run, or debug the LouisClaw workf
 Workspace facts:
 - The repo root is the OpenClaw workspace.
 - Main commands are implemented as npm scripts.
-- Intake happens through `data/inbox/` or `npm run add -- ...`.
+- Intake happens through `data/landing/`, then `data/inbox/`, or `npm run add -- ...`.
 - Processing writes structured items into `data/items/`.
 - Daily digest output is written into `data/digests/` and mirrored into `data/exports/`.
+- Standardized task ids are available through `npm run task -- run <task-id>`.
 
 Preferred command flow:
-1. Check current state with `npm run status`.
+1. Check current state with `npm run task -- run status_overview`.
 2. Add a test item with `npm run add -- --type text --content "..." --source openclaw --device webchat` when the user wants to simulate intake.
-3. Run `npm run run` to process inbox and refresh digest exports.
+3. Run `npm run task -- run daily_pipeline` to process landing/inbox and refresh digest exports.
 4. Read the latest files in `data/digests/` or `data/exports/` and summarize them for the user.
+
+Standard task ids:
+- `status_overview`
+- `process_inbox`
+- `build_digest`
+- `daily_pipeline`
+- `export_siyuan`
 
 Rules:
 - Keep the workflow local-first.

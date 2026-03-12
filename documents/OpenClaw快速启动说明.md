@@ -2,6 +2,36 @@
 
 本文档用于在另一台机器上快速复用 LouisClaw 的 OpenClaw 接入结果。
 
+## 0. 当前机器接管边界（重要）
+
+Git 仓库里的 OpenClaw 能力定义与本机 OpenClaw 运行时状态需要分开处理。
+
+- 仓库内可直接复用和修改的内容：`AGENTS.md`、`skills/`、`README.md`、`src/`、模板与说明文档。
+- 机器级状态：`~/.openclaw/openclaw.json`、`~/.openclaw/agents/`、`~/.openclaw/logs/`、Gateway service、API key、Gateway token、本地会话历史。
+
+在当前这台机器上的一次实际检查中，发现 OpenClaw 默认 workspace 指向的是：
+
+- `/Users/lou/.openclaw/workspace`
+
+而当前仓库路径是：
+
+- `/Users/lou/Learn/LouisClaw`
+
+这说明当前阻塞点主要不是 Git 仓库内容缺失，而是**本机 OpenClaw 还没有接管到这个仓库**。
+
+因此，下面这些动作都应视为“需要用户确认的接管动作”，不要默认自动执行：
+
+- 修改默认 workspace 绑定
+- 改写 `~/.openclaw/openclaw.json`
+- 重启或重装 Gateway / LaunchAgent service
+- 写入或替换 API key / token
+
+推荐顺序是：
+
+1. 先确认仓库内能力定义已经齐全（skills、CLI、README、启动说明）。
+2. 再由用户明确确认是否把 OpenClaw 默认 workspace 切到当前仓库。
+3. 如有需要，再由用户确认是否允许重启 gateway/service 做最终生效验证。
+
 ## 1. 哪些内容在 Git 仓库里
 
 以下内容已经写入当前仓库，提交后可直接复用：

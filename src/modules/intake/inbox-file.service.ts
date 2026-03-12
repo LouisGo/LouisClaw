@@ -38,6 +38,17 @@ export class InboxFileService {
       });
     }
 
+    if (ext === ".txt") {
+      return intakeInputSchema.parse({
+        source: "manual",
+        device: "local",
+        capture_time: nowIso(),
+        content_type: "text",
+        raw_content: readTextFile(filePath).trim(),
+        title: path.basename(filePath)
+      });
+    }
+
     throw new Error(`Unsupported inbox file format: ${ext}`);
   }
 }
