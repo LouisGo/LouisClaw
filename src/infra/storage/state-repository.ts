@@ -21,6 +21,21 @@ export interface MarkdownSourceState {
   [sourcePath: string]: MarkdownSourceStateEntry;
 }
 
+export type TaskRunStatus = "running" | "success" | "failed";
+
+export interface TaskRunStateEntry {
+  taskId: string;
+  status: TaskRunStatus;
+  startedAt: string;
+  finishedAt?: string;
+  durationMs?: number;
+  error?: string;
+}
+
+export interface TaskRunState {
+  [taskId: string]: TaskRunStateEntry;
+}
+
 export class StateRepository {
   constructor(private readonly config: AppConfig) {}
 
@@ -46,5 +61,13 @@ export class StateRepository {
 
   saveMarkdownSourceState(state: MarkdownSourceState): void {
     writeJsonFile(path.join(this.config.paths.state, "markdown-source-state.json"), state);
+  }
+
+  loadTaskRunState(): TaskRunState {
+    return readJsonFile<TaskRunState>(path.join(this.config.paths.state, "task-run-state.json")) || {};
+  }
+
+  saveTaskRunState(state: TaskRunState): void {
+    writeJsonFile(path.join(this.config.paths.state, "task-run-state.json"), state);
   }
 }

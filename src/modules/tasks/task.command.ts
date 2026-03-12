@@ -1,4 +1,5 @@
 import { assertTaskDefinition, listTaskDefinitions } from "./task-registry.js";
+import { TaskRunStateService } from "./task-run-state.service.js";
 
 export function runTaskListCommand(): void {
   const tasks = listTaskDefinitions();
@@ -14,6 +15,7 @@ export function runTaskListCommand(): void {
 
 export async function runTaskRunCommand(taskId: string): Promise<void> {
   const task = assertTaskDefinition(taskId);
+  const taskRunStateService = new TaskRunStateService();
 
   console.log(`Running task: ${task.id}`);
   console.log(`Description: ${task.description}`);
@@ -21,5 +23,13 @@ export async function runTaskRunCommand(taskId: string): Promise<void> {
   console.log(`Depends on: ${task.dependsOn.length ? task.dependsOn.join(", ") : "none"}`);
   console.log(`Cost class: ${task.costClass}`);
 
-  await task.run();
+  const started = taskRunStateService.markStarted(task.id);
+
+  try {
+    await task.run();
+    taskRunStateService.markFinished(task.id, started.startedAt, "success");
+  } catch (error) {
+    taskRunStateService.markFinished(task.id, started.startedAt, "failed", error);
+    throw error;
+  }
 }

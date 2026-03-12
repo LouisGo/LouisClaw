@@ -1,18 +1,23 @@
 import path from "node:path";
 import { loadConfig } from "../../app/config.js";
 import { ItemRepository } from "../../infra/storage/item-repository.js";
+import { StateRepository, TaskRunStateEntry } from "../../infra/storage/state-repository.js";
 import { LandingFileService } from "../intake/landing-file.service.js";
 import { dateStamp } from "../../shared/time.js";
 import { fileExists } from "../../shared/fs.js";
+import { listTaskSchedules } from "../tasks/task-schedule-registry.js";
+import { OpenClawCronService } from "../tasks/openclaw-cron.service.js";
 
 export function runStatusCommand(): void {
   const config = loadConfig();
   const itemRepository = new ItemRepository(config);
+  const stateRepository = new StateRepository(config);
   const landingFileService = new LandingFileService(config);
   const today = dateStamp();
   const items = itemRepository.loadAll().filter((item) => item.capture_time.startsWith(today));
   const digestPath = path.join(config.paths.digests, `${today}-daily-digest.md`);
   const landingOverview = landingFileService.overview();
+  const taskRunState = stateRepository.loadTaskRunState();
 
   const counts = {
     total: items.length,
@@ -35,4 +40,57 @@ export function runStatusCommand(): void {
   if (fileExists(digestPath)) {
     console.log(`Digest path: ${digestPath}`);
   }
+
+  console.log("Recent task runs:");
+  ["pull_markdown_sources", "process_inbox", "daily_pipeline"].forEach((taskId) => {
+    console.log(`- ${taskId}: ${formatTaskRun(taskRunState[taskId])}`);
+  });
+
+  console.log("Schedule status:");
+  try {
+    const jobs = new OpenClawCronService().listJobs();
+    listTaskSchedules().forEach((schedule) => {
+      const installed = jobs.find((job) => job.name === schedule.name);
+      console.log(`- ${schedule.id}: ${formatScheduleStatus(installed?.enabled, installed?.id)}`);
+    });
+  } catch (error) {
+    console.log(`- unavailable: ${formatError(error)}`);
+  }
+}
+
+function formatTaskRun(entry: TaskRunStateEntry | undefined): string {
+  if (!entry) {
+    return "never run";
+  }
+
+  const finishedAt = entry.finishedAt || entry.startedAt;
+  const duration = typeof entry.durationMs === "number" ? ` duration=${formatDuration(entry.durationMs)}` : "";
+  const reason = entry.error ? ` error=${entry.error}` : "";
+
+  return `${entry.status} at ${finishedAt}${duration}${reason}`;
+}
+
+function formatScheduleStatus(enabled: boolean | undefined, jobId: string | undefined): string {
+  if (!jobId) {
+    return "not installed";
+  }
+
+  return `${enabled ? "enabled" : "disabled"} job=${jobId}`;
+}
+
+function formatDuration(durationMs: number): string {
+  if (durationMs < 1000) {
+    return `${durationMs}ms`;
+  }
+
+  const seconds = Math.round(durationMs / 100) / 10;
+  return `${seconds}s`;
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message.replace(/\s+/g, " ").trim();
+  }
+
+  return String(error);
 }

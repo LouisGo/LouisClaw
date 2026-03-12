@@ -97,6 +97,8 @@ Current built-in schedule ids:
 
 The schedule layer is thin on purpose: it installs or updates OpenClaw cron jobs that tell the agent to run `npm run task -- run <task-id>`.
 
+`npm run status` now also shows the latest recorded run result for `pull_markdown_sources`, `process_inbox`, and `daily_pipeline`, plus current OpenClaw schedule install/enabled state when available.
+
 ## Markdown source pull
 
 You can configure one or more local markdown files to be polled and landed into `data/landing/`.
