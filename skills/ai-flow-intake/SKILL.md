@@ -7,6 +7,8 @@ metadata: {"openclaw":{"emoji":"📥","always":true}}
 
 Use this skill when the user wants to quickly drop a link, note, code snippet, or idea into the inbox.
 
+If the user is dealing with article/page/web research workflows that need more structured follow-through, use `ai-flow-web-intake` instead.
+
 When the content is clear enough, use:
 
 `npm run add -- --type <text|link|code|image|mixed|video_link> --content "..." --source openclaw --device webchat [--url "..."] [--title "..."]`

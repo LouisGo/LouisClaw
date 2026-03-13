@@ -6,6 +6,8 @@ import { StateRepository } from "../../infra/storage/state-repository.js";
 import { writeTextFile } from "../../shared/fs.js";
 import { nowIso, dateStamp } from "../../shared/time.js";
 import { slugify } from "../../shared/text.js";
+import { SiYuanApiClient } from "./siyuan-api.client.js";
+import { SiYuanApiExportService } from "./siyuan-api-export.service.js";
 
 export class SiYuanExportService {
   constructor(
@@ -14,8 +16,27 @@ export class SiYuanExportService {
     private readonly stateRepository: StateRepository
   ) {}
 
-  export(): string[] {
-    if (!this.config.flags.enableSiYuanExport || !this.config.paths.siyuanExportRoot) {
+  async export(): Promise<string[]> {
+    if (!this.config.flags.enableSiYuanExport) {
+      return [];
+    }
+
+    if (this.config.siyuan.driver === "api") {
+      if (!this.config.siyuan.apiToken) {
+        throw new Error("缺少 SIYUAN_API_TOKEN");
+      }
+
+      const service = new SiYuanApiExportService(
+        this.config,
+        this.itemRepository,
+        this.stateRepository,
+        new SiYuanApiClient(this.config.siyuan.apiUrl, this.config.siyuan.apiToken)
+      );
+
+      return service.export();
+    }
+
+    if (!this.config.paths.siyuanExportRoot) {
       return [];
     }
 
@@ -25,7 +46,7 @@ export class SiYuanExportService {
 
     const written = items.map((item) => {
       const section = item.decision === "follow_up" ? "follow-ups" : item.decision === "digest" ? "archive" : "archive";
-      const existingPath = itemMap[item.id];
+      const existingPath = itemMap[item.id]?.path;
       const fileName = `${today}-${item.id}-${slugify(item.title || item.summary || item.topic || "item")}.md`;
       const targetPath = existingPath || path.join(this.config.paths.siyuanExportRoot as string, section, fileName);
       const body = [
@@ -49,11 +70,15 @@ export class SiYuanExportService {
         capture_time: item.capture_time
       }));
 
-      itemMap[item.id] = targetPath;
+      itemMap[item.id] = {
+        mode: "filesystem",
+        path: targetPath
+      };
       this.itemRepository.save({
         ...item,
         siYuan_sync: {
           exported: true,
+          mode: "filesystem",
           path: targetPath,
           updated_at: nowIso()
         },

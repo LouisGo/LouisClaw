@@ -15,6 +15,11 @@ const envSchema = z.object({
   WORKSPACE_ROOT: z.string().optional(),
   SIYUAN_EXPORT_ROOT: z.string().optional(),
   ENABLE_SIYUAN_EXPORT: z.enum(["true", "false"]).optional(),
+  SIYUAN_EXPORT_DRIVER: z.enum(["filesystem", "api"]).optional(),
+  SIYUAN_API_URL: z.string().url().optional(),
+  SIYUAN_API_TOKEN: z.string().optional(),
+  SIYUAN_API_NOTEBOOK: z.string().min(1).optional(),
+  SIYUAN_EXPORT_VALIDATE: z.enum(["true", "false"]).optional(),
   EXPORT_ROOT: z.string().optional(),
   ENABLE_IM_ATTACHMENT_EXPORT: z.enum(["true", "false"]).optional(),
   MARKDOWN_PULL_SOURCES: z.string().optional()
@@ -64,6 +69,13 @@ export interface AppConfig {
     logs: string;
     siyuanExportRoot?: string;
   };
+  siyuan: {
+    driver: "filesystem" | "api";
+    apiUrl: string;
+    apiToken?: string;
+    notebook: string;
+    validate: boolean;
+  };
 }
 
 export function loadConfig(): AppConfig {
@@ -87,6 +99,13 @@ export function loadConfig(): AppConfig {
       model: env.AI_MODEL || env.OPENAI_MODEL || "gpt-5.4",
       apiKey: env.AI_API_KEY || env.OPENAI_API_KEY,
       baseUrl: env.AI_BASE_URL || "https://api.openai.com/v1"
+    },
+    siyuan: {
+      driver: env.SIYUAN_EXPORT_DRIVER || "filesystem",
+      apiUrl: env.SIYUAN_API_URL || "http://127.0.0.1:6806",
+      apiToken: env.SIYUAN_API_TOKEN,
+      notebook: env.SIYUAN_API_NOTEBOOK || "AI-Flow",
+      validate: env.SIYUAN_EXPORT_VALIDATE === "true"
     },
     paths: {
       data: dataRoot,

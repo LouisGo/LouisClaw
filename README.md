@@ -1,6 +1,6 @@
 # LouisClaw
 
-Personal information-flow pipeline scaffold for local-first capture, digesting, export, and incremental SiYuan archiving.
+Personal information-flow pipeline scaffold for local-first capture, digesting, export, and SiYuan-facing consumption.
 
 ## Structure
 
@@ -10,7 +10,7 @@ Personal information-flow pipeline scaffold for local-first capture, digesting, 
 - `src/modules/process/`: preprocess and classify flow
 - `src/modules/digest/`: daily digest generation
 - `src/modules/export/`: IM-friendly `.md` attachment export
-- `src/modules/siyuan/`: incremental SiYuan export only
+- `src/modules/siyuan/`: filesystem and API-backed SiYuan export adapters
 - `src/modules/watch/`: inbox file watching
 - `src/infra/storage/`: item/state repositories
 - `src/shared/`: filesystem, text, hash, time, logging helpers
@@ -21,6 +21,7 @@ Personal information-flow pipeline scaffold for local-first capture, digesting, 
 - `npm run build`
 - `npm run dev -- add --type text --content "hello"`
 - `npm run add -- --type text --content "hello" --source mac --device macbook`
+- `npm run web-intake -- --url "https://example.com" --title "Example" --content "short takeaway"`
 - `npm run add -- --type code --file ./snippet.ts --source mac --device macbook`
 - `npm run watch`
 - `npm run process`
@@ -152,6 +153,14 @@ If you later enable SiYuan export:
 ENABLE_SIYUAN_EXPORT=true SIYUAN_EXPORT_ROOT="/path/to/AI-Flow" npm run export:siyuan
 ```
 
+If you want visible SiYuan docs through the official API instead of filesystem-only markdown export:
+
+```bash
+ENABLE_SIYUAN_EXPORT=true SIYUAN_EXPORT_DRIVER=api SIYUAN_API_URL="http://127.0.0.1:6806" SIYUAN_API_TOKEN="..." SIYUAN_API_NOTEBOOK="AI-Flow" npm run export:siyuan
+```
+
+This creates visible docs under a dedicated SiYuan notebook such as `AI-Flow`, while LouisClaw remains the source of truth.
+
 If you want real LLM classification:
 
 ```bash
@@ -198,12 +207,27 @@ Workspace skills are available under `skills/`:
 
 - `ai-flow`: operate the whole pipeline from chat
 - `ai-flow-intake`: quickly capture a new item into the inbox
+- `ai-flow-web-intake`: guide webpage/article intake into the existing local-first workflow
+- `ai-flow-siyuan`: export LouisClaw outputs into visible SiYuan docs via the official API
 - `ai-flow-review`: inspect today's digest and processed items
 
 Reusable setup docs:
 
 - `documents/OpenClaw快速启动说明.md`
 - `templates/openclaw/openclaw.local.example.json`
+
+Workflow notes:
+
+- `documents/web-intake-contract.md`
+- `documents/siyuan-api-memo.md`
+
+For one-off webpage/article capture, prefer:
+
+```bash
+npm run web-intake -- --url "https://example.com/article" --title "Article title" --content "cleaned summary or excerpt"
+```
+
+This still lands into `data/landing/` through the standard intake contract. Then continue with `npm run task -- run process_inbox` or `npm run run`.
 
 ## Data directories
 

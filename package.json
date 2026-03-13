@@ -7,6 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/app/cli.ts",
     "add": "node dist/app/cli.js add",
+    "web-intake": "node dist/app/cli.js web-intake",
     "watch": "node dist/app/cli.js watch",
     "process": "node dist/app/cli.js process",
     "digest": "node dist/app/cli.js digest",

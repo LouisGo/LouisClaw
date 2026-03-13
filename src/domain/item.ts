@@ -16,6 +16,9 @@ export interface IntakeInput {
 
 export interface SiYuanSyncState {
   exported: boolean;
+  mode?: "filesystem" | "api";
+  notebook_id?: string;
+  doc_id?: string;
   path?: string;
   updated_at?: string;
 }

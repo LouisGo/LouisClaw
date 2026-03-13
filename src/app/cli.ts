@@ -8,6 +8,7 @@ import { runPipelineCommand } from "../modules/pipeline/run.command.js";
 import { runStatusCommand } from "../modules/pipeline/status.command.js";
 import { runTaskListCommand, runTaskRunCommand } from "../modules/tasks/task.command.js";
 import { runScheduleInstallCommand, runScheduleListCommand } from "../modules/tasks/task-schedule.command.js";
+import { runWebIntakeCommand } from "../modules/intake/web-intake.command.js";
 
 const program = new Command();
 
@@ -24,12 +25,22 @@ program
   .option("--title <title>")
   .action(runAddCommand);
 
+program
+  .command("web-intake")
+  .requiredOption("--url <url>")
+  .option("--content <content>")
+  .option("--file <path>")
+  .option("--source <source>")
+  .option("--device <device>")
+  .option("--title <title>")
+  .action(runWebIntakeCommand);
+
 program.command("process").action(async () => runProcessCommand());
 program.command("watch").action(runWatchCommand);
 program.command("digest").action(runDigestCommand);
 program.command("run").action(async () => runPipelineCommand());
 program.command("status").action(runStatusCommand);
-program.command("export-siyuan").action(runExportSiYuanCommand);
+program.command("export-siyuan").action(async () => runExportSiYuanCommand());
 
 const taskProgram = program.command("task").description("Run standardized LouisClaw tasks");
 

@@ -7,7 +7,14 @@ export interface DedupeIndex {
 }
 
 export interface SiYuanMap {
-  [itemId: string]: string;
+  [itemId: string]: SiYuanMapEntry;
+}
+
+export interface SiYuanMapEntry {
+  mode?: "filesystem" | "api";
+  notebookId?: string;
+  docId?: string;
+  path: string;
 }
 
 export interface MarkdownSourceStateEntry {
@@ -48,7 +55,15 @@ export class StateRepository {
   }
 
   loadSiYuanMap(): SiYuanMap {
-    return readJsonFile<SiYuanMap>(path.join(this.config.paths.state, "siyuan-map.json")) || {};
+    const raw = readJsonFile<Record<string, string | SiYuanMapEntry>>(path.join(this.config.paths.state, "siyuan-map.json")) || {};
+
+    return Object.fromEntries(Object.entries(raw).map(([key, value]) => {
+      if (typeof value === "string") {
+        return [key, { mode: "filesystem", path: value } satisfies SiYuanMapEntry];
+      }
+
+      return [key, value];
+    }));
   }
 
   saveSiYuanMap(map: SiYuanMap): void {
