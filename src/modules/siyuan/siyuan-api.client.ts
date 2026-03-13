@@ -36,8 +36,20 @@ export class SiYuanApiClient {
     return this.post<string>("/api/filetree/getHPathByID", { id });
   }
 
+  async getPathByID(id: string): Promise<{ notebook: string; path: string }> {
+    return this.post<{ notebook: string; path: string }>("/api/filetree/getPathByID", { id });
+  }
+
   async createDocWithMd(notebook: string, path: string, markdown: string): Promise<string> {
     return this.post<string>("/api/filetree/createDocWithMd", { notebook, path, markdown });
+  }
+
+  async removeDocByID(id: string): Promise<void> {
+    await this.post<null>("/api/filetree/removeDocByID", { id });
+  }
+
+  async exportMdContent(id: string): Promise<{ hPath: string; content: string }> {
+    return this.post<{ hPath: string; content: string }>("/api/export/exportMdContent", { id });
   }
 
   private async post<T>(endpoint: string, body: unknown): Promise<T> {

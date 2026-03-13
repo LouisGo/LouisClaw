@@ -13,6 +13,8 @@ function toDigestEntry(item: Item): DigestEntry {
     reason: item.reason || "No reason",
     topic: item.topic || "general",
     decision: item.decision || "archive",
+    capture_time: item.capture_time,
+    value_score: item.value_score,
     url: item.url
   };
 }

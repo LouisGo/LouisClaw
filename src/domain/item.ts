@@ -51,5 +51,7 @@ export interface DigestEntry {
   reason: string;
   topic: string;
   decision: Decision;
+  capture_time?: string;
+  value_score?: number;
   url?: string;
 }

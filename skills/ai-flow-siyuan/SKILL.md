@@ -7,6 +7,11 @@ metadata: {"openclaw":{"emoji":"📚","always":true}}
 
 Use this skill when the user wants LouisClaw outputs to appear as visible SiYuan docs instead of filesystem-only markdown artifacts.
 
+Official SiYuan API reference:
+
+- `https://github.com/siyuan-note/siyuan/blob/master/API.md`
+- Treat this document as the source of truth for endpoint behavior before changing export, update, or recovery semantics.
+
 What this skill is for:
 
 1. Check whether the current workspace already has digest/item outputs worth exporting
@@ -30,6 +35,7 @@ What this skill should say clearly:
 - SiYuan is a downstream consumption surface
 - API mode creates visible docs in SiYuan's tree
 - Filesystem mode is still available, but it does not guarantee tree-visible docs
+- The `AI-Flow` notebook should keep a stable top-level structure: `/digests/`, `/items/`, `/follow-ups/`
 
 Rules:
 

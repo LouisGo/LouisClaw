@@ -45,7 +45,7 @@ export class SiYuanExportService {
     const items = this.itemRepository.loadAll().filter((item) => item.decision && item.decision !== "drop");
 
     const written = items.map((item) => {
-      const section = item.decision === "follow_up" ? "follow-ups" : item.decision === "digest" ? "archive" : "archive";
+      const section = item.decision === "follow_up" ? "follow-ups" : "items";
       const existingPath = itemMap[item.id]?.path;
       const fileName = `${today}-${item.id}-${slugify(item.title || item.summary || item.topic || "item")}.md`;
       const targetPath = existingPath || path.join(this.config.paths.siyuanExportRoot as string, section, fileName);

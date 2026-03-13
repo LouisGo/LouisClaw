@@ -15,6 +15,9 @@
 
 ## 官方 API 基本认知
 
+- 官方 API 文档：`https://github.com/siyuan-note/siyuan/blob/master/API.md`
+- 在调整 LouisClaw 的 SiYuan 导出、重复导出更新语义、路径恢复或 stale doc id 修复前，先以这份官方文档为准。
+
 - 内核默认地址：`http://127.0.0.1:6806`
 - 需要 API token（通常在设置 / 关于中查看）
 - 官方文档把它当作内核 API 暴露出来，文件、文档、块、导出等能力都在里面
@@ -88,11 +91,28 @@
 
 - 作用：从 Markdown 创建树内可见文档
 - 适合：把 digest 或 item 变成思源里真正能看到的文档
+- 官方语义要点：同一路径重复调用 **不会覆盖已有文档**
+- 对当前项目的含义：如果要支持重复导出更新，不能只重复调用创建接口，必须先定位现有 doc，再决定复用、删除重建，或在映射失效时恢复
 
 ### `/api/filetree/getIDsByHPath`
 
 - 作用：按人类路径查已有文档 ID
 - 适合：避免重复创建、做 path -> doc id 校验
+
+### `/api/filetree/removeDocByID`
+
+- 作用：按 doc id 删除文档
+- 适合：当前项目在确认目标路径已有旧导出且需要内容更新时，先删除再按同一路径重建
+
+### `/api/export/exportMdContent`
+
+- 作用：导出文档当前 Markdown 内容
+- 适合：重复导出时比较现有内容与新内容，避免无意义重建
+
+### `/api/filetree/getHPathByID`
+
+- 作用：按 doc id 反查当前人类路径
+- 适合：发现文档被手工改名 / 移动后，识别旧映射已经失效，转而按目标路径重建或重新绑定
 
 ## 未来参考但暂不作为当前主线的接口
 

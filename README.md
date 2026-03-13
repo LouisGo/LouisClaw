@@ -161,6 +161,12 @@ ENABLE_SIYUAN_EXPORT=true SIYUAN_EXPORT_DRIVER=api SIYUAN_API_URL="http://127.0.
 
 This creates visible docs under a dedicated SiYuan notebook such as `AI-Flow`, while LouisClaw remains the source of truth.
 
+Recommended `AI-Flow` notebook structure:
+
+- `/digests/`: daily digest docs
+- `/items/`: exported `digest` items worth surfacing
+- `/follow-ups/`: exported `follow_up` items that imply action or revisit
+
 If you want real LLM classification:
 
 ```bash
