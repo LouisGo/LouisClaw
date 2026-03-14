@@ -213,7 +213,11 @@ Workspace skills are available under `skills/`:
 
 - `ai-flow`: operate the whole pipeline from chat
 - `ai-flow-intake`: quickly capture a new item into the inbox
+- `ai-flow-triage`: run light hourly-style triage on recent inputs
 - `ai-flow-web-intake`: guide webpage/article intake into the existing local-first workflow
+- `ai-flow-synthesis`: generate higher-value topic recaps and structured writeups
+- `ai-flow-publish`: choose where outputs should be published
+- `ai-flow-feedback`: record lightweight output feedback
 - `ai-flow-siyuan`: export LouisClaw outputs into visible SiYuan docs via the official API
 - `ai-flow-review`: inspect today's digest and processed items
 
@@ -226,6 +230,8 @@ Workflow notes:
 
 - `documents/web-intake-contract.md`
 - `documents/siyuan-api-memo.md`
+- `documents/feedback-contract.md`
+- `documents/synthesis-output-contract.md`
 
 For one-off webpage/article capture, prefer:
 
@@ -243,6 +249,8 @@ This still lands into `data/landing/` through the standard intake contract. Then
 - `data/items/`: structured items
 - `data/digests/`: generated digests
 - `data/exports/`: IM-friendly markdown exports
+- `data/exports/synthesis/`: draft long-form synthesis artifacts before publish
+- `data/feedback/`: lightweight user feedback records
 - `data/state/`: indexes and sync state
 - `data/logs/`: run logs
 

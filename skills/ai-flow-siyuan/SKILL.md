@@ -7,6 +7,8 @@ metadata: {"openclaw":{"emoji":"📚","always":true}}
 
 Use this skill when the user wants LouisClaw outputs to appear as visible SiYuan docs instead of filesystem-only markdown artifacts.
 
+This skill is a publish adapter for `SiYuan`, not the place to decide whether a topic should be synthesized in the first place.
+
 Official SiYuan API reference:
 
 - `https://github.com/siyuan-note/siyuan/blob/master/API.md`
@@ -18,6 +20,7 @@ What this skill is for:
 2. Run the existing LouisClaw pipeline when needed
 3. Export those outputs into the dedicated SiYuan notebook via the official API
 4. Verify the created docs by notebook/path, not by guessing from the filesystem
+5. Publish long-form topic writeups only after they already exist or have been explicitly requested
 
 Preferred flow:
 
@@ -43,3 +46,4 @@ Rules:
 - Do not write directly to `.sy` files
 - Do not treat SiYuan as canonical state
 - If API export is not configured, explain exactly what env vars are missing instead of pretending export succeeded
+- Do not use this skill to replace `ai-flow-synthesis` or `ai-flow-publish`
