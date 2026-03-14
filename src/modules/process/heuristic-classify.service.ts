@@ -19,11 +19,13 @@ const TOPIC_SIGNALS: Record<Exclude<TopicName, "general">, TopicSignal[]> = {
   engineering: [
     { pattern: /typescript|javascript|tsx|react|vue|node\.?js|frontend|backend/i, score: 5 },
     { pattern: /render(ing)?|renderer|manifest|registry|transformer|layout|context menu/i, score: 5 },
+    { pattern: /pipeline|workflow|contract|schema|normalize(d)?|intake|capture|router|routing/i, score: 4 },
     { pattern: /domain|sdk|api|component|test|hook|selector|module|architecture/i, score: 4 },
-    { pattern: /代码|工程|前端|后端|渲染|维护指南|测试|组件|架构/i, score: 5 }
+    { pattern: /代码|工程|前端|后端|渲染|维护指南|测试|组件|架构|工作流|契约|统一入口|归一化|落盘/i, score: 5 }
   ],
   video: [
-    { pattern: /\bvideo\b|youtube|bilibili|字幕|播客|访谈/i, score: 5 }
+    { pattern: /\bvideo\b|视频|字幕|播客|访谈|clip|transcript/i, score: 5 },
+    { pattern: /youtube|bilibili|抖音|tiktok/i, score: 2 }
   ]
 };
 
@@ -43,6 +45,7 @@ function detectTopic(item: Item): string {
   const engineeringScore = titleScores.engineering * 2 + bodyScores.engineering;
   const aiScore = titleScores.ai * 2 + bodyScores.ai;
   const videoScore = titleScores.video * 2 + bodyScores.video;
+  const platformIntakeContext = hasPlatformIntakeContext(`${title} ${body}`);
 
   if (engineeringScore >= 5 && engineeringScore >= aiScore) {
     return "engineering";
@@ -50,6 +53,10 @@ function detectTopic(item: Item): string {
 
   if (aiScore >= 5) {
     return "ai";
+  }
+
+  if (platformIntakeContext && videoScore > 0) {
+    return "general";
   }
 
   if (videoScore >= 5) {
@@ -69,6 +76,10 @@ function scoreTopics(text: string): Record<Exclude<TopicName, "general">, number
 
 function scoreSignals(text: string, signals: TopicSignal[]): number {
   return signals.reduce((total, signal) => total + (signal.pattern.test(text) ? signal.score : 0), 0);
+}
+
+function hasPlatformIntakeContext(text: string): boolean {
+  return /分享|分享卡片|share card|分享链接|link|链接|平台|入口|统一入口|信息流|pipeline|workflow|intake|capture|归一化|markdown|snippet/i.test(text);
 }
 
 export class HeuristicClassifyService {

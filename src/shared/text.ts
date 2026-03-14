@@ -16,6 +16,11 @@ export function slugify(value: string, fallback = "item"): string {
   return result || fallback;
 }
 
+export function extractFirstUrl(value: string): string | undefined {
+  const match = value.match(/https?:\/\/[^\s<>()]+[^\s<>().,!?;:]/i);
+  return match?.[0];
+}
+
 export function isNoiseText(value: string): boolean {
   const normalized = normalizeContent(value);
   if (!normalized) {

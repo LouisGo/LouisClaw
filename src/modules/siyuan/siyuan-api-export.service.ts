@@ -1,11 +1,12 @@
 import path from "node:path";
+import matter from "gray-matter";
 import { AppConfig } from "../../app/config.js";
 import { Item } from "../../domain/item.js";
 import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { SiYuanMapEntry, StateRepository } from "../../infra/storage/state-repository.js";
-import { readTextFile } from "../../shared/fs.js";
+import { listFiles, readTextFile } from "../../shared/fs.js";
 import { dateStamp, nowIso } from "../../shared/time.js";
-import { slugify } from "../../shared/text.js";
+import { extractFirstUrl, slugify } from "../../shared/text.js";
 import { renderItemExport } from "../digest/digest.renderer.js";
 import { SiYuanApiClient } from "./siyuan-api.client.js";
 
@@ -48,7 +49,7 @@ export class SiYuanApiExportService {
         reason: item.reason || "No reason",
         topic: item.topic || "general",
         decision: item.decision || "archive",
-        url: item.url
+        url: item.url || extractFirstUrl(item.raw_content)
       }, item.raw_content);
 
       const result = await this.ensureDoc(notebookId, item.id, hPath, markdown, itemMap);
@@ -70,6 +71,23 @@ export class SiYuanApiExportService {
         },
         status: "exported"
       });
+      written.push(result.hPath);
+    }
+
+    const synthesisFiles = listFiles(this.config.paths.exportSynthesis, ".md");
+    for (const filePath of synthesisFiles) {
+      const parsed = matter(readTextFile(filePath));
+      const fileName = path.basename(filePath, ".md");
+      const synthesisId = getSynthesisId(parsed.data.id, fileName);
+      const hPath = `/synthesis/${fileName}`;
+      const markdown = parsed.content.trim() ? `${parsed.content.trim()}\n` : "";
+      const result = await this.ensureDoc(notebookId, synthesisId, hPath, markdown, itemMap);
+      itemMap[synthesisId] = {
+        mode: "api",
+        notebookId,
+        docId: result.docId,
+        path: result.hPath
+      };
       written.push(result.hPath);
     }
 
@@ -162,4 +180,12 @@ export class SiYuanApiExportService {
 
     return undefined;
   }
+}
+
+function getSynthesisId(rawId: unknown, fileName: string): string {
+  if (typeof rawId === "string" && rawId.trim()) {
+    return rawId.trim();
+  }
+
+  return `synthesis:${fileName}`;
 }

@@ -74,7 +74,7 @@ publish_status: draft
 支持的当前路径：
 
 - 本地保留在 `data/exports/synthesis/`
-- 导出到 `SiYuan`
+- 导出到 `SiYuan`（通过现有 `export_siyuan` 流程发布到 `/synthesis/`）
 - 未来给 `IM` 发标题级提醒
 
 ## 7. skill 行为约束

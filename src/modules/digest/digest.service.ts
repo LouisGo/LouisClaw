@@ -4,6 +4,7 @@ import { DigestEntry, Item } from "../../domain/item.js";
 import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { writeTextFile } from "../../shared/fs.js";
 import { dateStamp } from "../../shared/time.js";
+import { extractFirstUrl } from "../../shared/text.js";
 import { renderDailyDigest } from "./digest.renderer.js";
 
 function toDigestEntry(item: Item): DigestEntry {
@@ -15,7 +16,7 @@ function toDigestEntry(item: Item): DigestEntry {
     decision: item.decision || "archive",
     capture_time: item.capture_time,
     value_score: item.value_score,
-    url: item.url
+    url: item.url || extractFirstUrl(item.raw_content)
   };
 }
 

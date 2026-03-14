@@ -3,9 +3,9 @@ import matter from "gray-matter";
 import { AppConfig } from "../../app/config.js";
 import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { StateRepository } from "../../infra/storage/state-repository.js";
-import { writeTextFile } from "../../shared/fs.js";
+import { listFiles, readTextFile, writeTextFile } from "../../shared/fs.js";
 import { nowIso, dateStamp } from "../../shared/time.js";
-import { slugify } from "../../shared/text.js";
+import { extractFirstUrl, slugify } from "../../shared/text.js";
 import { SiYuanApiClient } from "./siyuan-api.client.js";
 import { SiYuanApiExportService } from "./siyuan-api-export.service.js";
 
@@ -49,11 +49,12 @@ export class SiYuanExportService {
       const existingPath = itemMap[item.id]?.path;
       const fileName = `${today}-${item.id}-${slugify(item.title || item.summary || item.topic || "item")}.md`;
       const targetPath = existingPath || path.join(this.config.paths.siyuanExportRoot as string, section, fileName);
+      const itemUrl = item.url || extractFirstUrl(item.raw_content);
       const body = [
         `# ${item.summary || item.title || item.id}`,
         "",
         `- Reason: ${item.reason || "No reason"}`,
-        ...(item.url ? [`- URL: ${item.url}`] : []),
+        ...(itemUrl ? [`- URL: ${itemUrl}`] : []),
         "",
         "## Source",
         "",
@@ -88,7 +89,29 @@ export class SiYuanExportService {
       return targetPath;
     });
 
+    const synthesisWritten = listFiles(this.config.paths.exportSynthesis, ".md").map((filePath) => {
+      const parsed = matter(readTextFile(filePath));
+      const fileName = path.basename(filePath);
+      const synthesisId = getSynthesisId(parsed.data.id, path.basename(filePath, ".md"));
+      const existingPath = itemMap[synthesisId]?.path;
+      const targetPath = existingPath || path.join(this.config.paths.siyuanExportRoot as string, "synthesis", fileName);
+      writeTextFile(targetPath, readTextFile(filePath));
+      itemMap[synthesisId] = {
+        mode: "filesystem",
+        path: targetPath
+      };
+      return targetPath;
+    });
+
     this.stateRepository.saveSiYuanMap(itemMap);
-    return written;
+    return [...written, ...synthesisWritten];
   }
+}
+
+function getSynthesisId(rawId: unknown, fileName: string): string {
+  if (typeof rawId === "string" && rawId.trim()) {
+    return rawId.trim();
+  }
+
+  return `synthesis:${fileName}`;
 }

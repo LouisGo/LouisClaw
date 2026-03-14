@@ -65,6 +65,7 @@ export interface AppConfig {
     exportDigests: string;
     exportItems: string;
     exportFollowUps: string;
+    exportSynthesis: string;
     state: string;
     logs: string;
     siyuanExportRoot?: string;
@@ -118,6 +119,7 @@ export function loadConfig(): AppConfig {
       exportDigests: path.join(exportsRoot, "digests"),
       exportItems: path.join(exportsRoot, "items"),
       exportFollowUps: path.join(exportsRoot, "follow-ups"),
+      exportSynthesis: path.join(exportsRoot, "synthesis"),
       state: path.join(dataRoot, "state"),
       logs: path.join(dataRoot, "logs"),
       siyuanExportRoot: env.SIYUAN_EXPORT_ROOT ? path.resolve(workspaceRoot, env.SIYUAN_EXPORT_ROOT) : undefined
@@ -139,6 +141,7 @@ function ensureDirectories(config: AppConfig): void {
   ensureDir(config.paths.exportDigests);
   ensureDir(config.paths.exportItems);
   ensureDir(config.paths.exportFollowUps);
+  ensureDir(config.paths.exportSynthesis);
   ensureDir(config.paths.state);
   ensureDir(config.paths.logs);
 }
