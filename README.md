@@ -233,6 +233,7 @@ Workflow notes:
 - `documents/feedback-contract.md`
 - `documents/synthesis-output-contract.md`
 - `documents/markdown-rendering-contract.md`
+- `documents/IM-BOT接入准备清单.md`
 
 For one-off webpage/article capture, prefer:
 
