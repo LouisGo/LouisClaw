@@ -1,3 +1,4 @@
+import { extractFirstUrl } from "../../shared/text.js";
 import { DigestEntry } from "../../domain/item.js";
 
 export function renderDailyDigest(date: string, entries: DigestEntry[]): string {
@@ -31,14 +32,15 @@ export function renderDailyDigest(date: string, entries: DigestEntry[]): string 
 }
 
 export function renderItemExport(entry: DigestEntry, rawContent: string): string {
+  const sourceUrl = entry.url || extractFirstUrl(rawContent);
   return [
     `# ${entry.summary}`,
     "",
-    `- Item ID: ${entry.id}`,
-    `- Topic: ${entry.topic}`,
-    `- Decision: ${entry.decision}`,
-    `- Reason: ${entry.reason}`,
-    ...(entry.url ? [`- URL: ${entry.url}`] : []),
+    `- **Item ID**: ${entry.id}`,
+    `- **Topic**: ${renderTopicLabel(entry.topic)}`,
+    `- **Decision**: ${entry.decision}`,
+    `- **Reason**: ${localizeReason(entry.reason)}`,
+    ...(sourceUrl ? [`- **来源链接**: ${renderMarkdownLink("打开原文", sourceUrl)}`] : []),
     "",
     "## 原文",
     "",
@@ -82,18 +84,16 @@ function renderTopicLine(entries: DigestEntry[]): string {
 }
 
 function renderEntryLine(entry: DigestEntry): string {
-  const summary = compact(entry.summary, 72);
+  const summary = renderEntrySummary(entry, 72);
   const reason = compact(localizeReason(entry.reason), 36);
-  const source = entry.url ? `｜${entry.url}` : "";
-  return `- [${renderTopicLabel(entry.topic)}] ${summary}｜${reason}${source}`;
+  return `- [${renderTopicLabel(entry.topic)}] ${summary}｜${reason}`;
 }
 
 function renderFollowUpLine(entry: DigestEntry): string {
   const action = inferFollowUpAction(entry);
-  const summary = compact(entry.summary, 68);
+  const summary = renderEntrySummary(entry, 68);
   const reason = compact(localizeReason(entry.reason), 28);
-  const source = entry.url ? `｜${entry.url}` : "";
-  return `- ${action}：${summary}｜${reason}${source}`;
+  return `- ${action}：${summary}｜${reason}`;
 }
 
 function renderLeadLines(
@@ -109,20 +109,29 @@ function renderLeadLines(
   const topArchive = archiveItems[0];
 
   return [
-    `- 主焦点：${describeTopTopic(topTopic)}`,
+    `- **主焦点**：${describeTopTopic(topTopic)}`,
     topSignal
-      ? `- 今日判断：${describeDaySignal(topSignal, followUps.length, digestItems.length)}`
-      : "- 今日判断：暂无新增信号",
+      ? `- **今日判断**：${describeDaySignal(topSignal, followUps.length, digestItems.length)}`
+      : "- **今日判断**：暂无新增信号",
     topDigest
-      ? `- 最值得回看：${compact(topDigest.summary, 64)}`
-      : "- 最值得回看：暂无",
+      ? `- **最值得回看**：${renderEntrySummary(topDigest, 64)}`
+      : "- **最值得回看**：暂无",
     topFollowUp
-      ? `- 最需要行动：${compact(topFollowUp.summary, 64)}`
-      : "- 最需要行动：暂无明确 follow-up",
+      ? `- **最需要行动**：${renderEntrySummary(topFollowUp, 64)}`
+      : "- **最需要行动**：暂无明确 follow-up",
     topArchive
-      ? `- 顺手可存：${compact(topArchive.summary, 64)}`
-      : "- 顺手可存：暂无额外归档参考"
+      ? `- **顺手可存**：${renderEntrySummary(topArchive, 64)}`
+      : "- **顺手可存**：暂无额外归档参考"
   ];
+}
+
+function renderEntrySummary(entry: DigestEntry, maxLength: number): string {
+  const summary = compact(entry.summary, maxLength);
+  if (!entry.url) {
+    return summary;
+  }
+
+  return renderMarkdownLink(summary, entry.url);
 }
 
 function getTopTopic(entries: DigestEntry[]): string | undefined {
@@ -228,4 +237,9 @@ function compact(value: string, maxLength: number): string {
   }
 
   return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function renderMarkdownLink(label: string, url: string): string {
+  const safeLabel = label.replace(/([\\\[\]])/g, "\\$1");
+  return `[${safeLabel}](${url})`;
 }

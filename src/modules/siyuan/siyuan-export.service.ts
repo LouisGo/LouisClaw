@@ -54,7 +54,7 @@ export class SiYuanExportService {
         `# ${item.summary || item.title || item.id}`,
         "",
         `- Reason: ${item.reason || "No reason"}`,
-        ...(itemUrl ? [`- URL: ${itemUrl}`] : []),
+        ...(itemUrl ? [`- 来源链接: [打开原文](${itemUrl})`] : []),
         "",
         "## Source",
         "",

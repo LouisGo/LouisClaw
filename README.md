@@ -232,6 +232,7 @@ Workflow notes:
 - `documents/siyuan-api-memo.md`
 - `documents/feedback-contract.md`
 - `documents/synthesis-output-contract.md`
+- `documents/markdown-rendering-contract.md`
 
 For one-off webpage/article capture, prefer:
 
