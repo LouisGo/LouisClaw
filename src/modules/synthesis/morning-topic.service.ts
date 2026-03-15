@@ -84,7 +84,7 @@ export class MorningTopicService {
   }
 
   private loadRecentItems(): Item[] {
-    const lookbackMs = this.config.morningTopic.lookbackDays * 24 * 60 * 60 * 1000;
+    const lookbackMs = Math.min(this.config.morningTopic.lookbackDays, this.config.activeWindow.maxAgeDays) * 24 * 60 * 60 * 1000;
     const cutoff = Date.now() - lookbackMs;
 
     return this.itemRepository.loadAll()
@@ -111,8 +111,9 @@ export class MorningTopicService {
 
   private selectSubscriptionCandidate(items: Item[]): TopicCandidate | undefined {
     const subscriptions = this.config.morningTopic.subscriptions;
+    const maxItems = this.config.activeWindow.morningTopicMaxItems;
     const candidates = subscriptions.map((label) => {
-      const matched = items.filter((item) => matchesTopic(item, label)).slice(0, 8);
+      const matched = items.filter((item) => matchesTopic(item, label)).slice(0, maxItems);
       const researchPacket = this.findResearchPacket(label);
       return {
         label,
@@ -142,7 +143,7 @@ export class MorningTopicService {
       .map(([label, groupItems]) => ({
         label,
         slug: fileSlug(label, "topic"),
-        items: groupItems.slice(0, 8),
+        items: groupItems.slice(0, this.config.activeWindow.morningTopicMaxItems),
         sourceType: "system" as const,
         whyNow: `这个主题最近连续出现 ${groupItems.length} 次，已经从零散输入长成值得早晨专注阅读的主题。`
       }))
@@ -154,7 +155,7 @@ export class MorningTopicService {
 
   private findResearchPacket(label: string): ResearchPacket | undefined {
     const normalizedLabel = label.toLowerCase();
-    const files = listFiles(this.config.paths.researchPackets, ".md");
+    const files = listFiles(this.config.paths.researchPackets, ".md").slice(-this.config.openclawContext.maxPackets);
     for (const filePath of files.reverse()) {
       const parsed = matter(readTextFile(filePath));
       const topicLabel = String(parsed.data.topic_label || "").trim();

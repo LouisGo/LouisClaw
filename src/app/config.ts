@@ -30,6 +30,11 @@ const envSchema = z.object({
   EXTERNAL_RESEARCH_ENABLED: z.enum(["true", "false"]).optional(),
   EXTERNAL_RESEARCH_MAX_SOURCES: z.coerce.number().int().min(1).max(12).optional(),
   EXTERNAL_RESEARCH_MIN_LOCAL_ITEMS: z.coerce.number().int().min(0).max(20).optional(),
+  ACTIVE_ITEM_MAX_AGE_DAYS: z.coerce.number().int().min(1).max(365).optional(),
+  MORNING_TOPIC_MAX_ITEMS: z.coerce.number().int().min(1).max(20).optional(),
+  OPENCLAW_CONTEXT_MAX_ITEMS: z.coerce.number().int().min(1).max(30).optional(),
+  OPENCLAW_CONTEXT_MAX_PACKETS: z.coerce.number().int().min(1).max(5).optional(),
+  OPENCLAW_CONTEXT_MAX_DIGESTS: z.coerce.number().int().min(1).max(5).optional(),
   EXPORT_ROOT: z.string().optional(),
   ENABLE_IM_ATTACHMENT_EXPORT: z.enum(["true", "false"]).optional(),
   MARKDOWN_PULL_SOURCES: z.string().optional()
@@ -72,6 +77,15 @@ export interface AppConfig {
     enabled: boolean;
     maxSources: number;
     minLocalItems: number;
+  };
+  activeWindow: {
+    maxAgeDays: number;
+    morningTopicMaxItems: number;
+  };
+  openclawContext: {
+    maxItems: number;
+    maxPackets: number;
+    maxDigests: number;
   };
   paths: {
     data: string;
@@ -138,6 +152,15 @@ export function loadConfig(): AppConfig {
       enabled: env.EXTERNAL_RESEARCH_ENABLED === "true",
       maxSources: env.EXTERNAL_RESEARCH_MAX_SOURCES || 6,
       minLocalItems: env.EXTERNAL_RESEARCH_MIN_LOCAL_ITEMS || 3
+    },
+    activeWindow: {
+      maxAgeDays: env.ACTIVE_ITEM_MAX_AGE_DAYS || 30,
+      morningTopicMaxItems: env.MORNING_TOPIC_MAX_ITEMS || 8
+    },
+    openclawContext: {
+      maxItems: env.OPENCLAW_CONTEXT_MAX_ITEMS || 12,
+      maxPackets: env.OPENCLAW_CONTEXT_MAX_PACKETS || 1,
+      maxDigests: env.OPENCLAW_CONTEXT_MAX_DIGESTS || 1
     },
     siyuan: {
       driver: env.SIYUAN_EXPORT_DRIVER || "filesystem",

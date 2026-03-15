@@ -95,7 +95,7 @@ export class ExternalResearchService {
   }
 
   latestResearchPacketPath(): string | undefined {
-    const files = listFiles(this.config.paths.researchPackets, ".md");
+    const files = listFiles(this.config.paths.researchPackets, ".md").slice(-this.config.openclawContext.maxPackets);
     return files[files.length - 1];
   }
 

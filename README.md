@@ -233,6 +233,11 @@ If you want OpenClaw to supplement a morning topic with public web sources, keep
 EXTERNAL_RESEARCH_ENABLED=false
 EXTERNAL_RESEARCH_MAX_SOURCES=6
 EXTERNAL_RESEARCH_MIN_LOCAL_ITEMS=3
+ACTIVE_ITEM_MAX_AGE_DAYS=30
+MORNING_TOPIC_MAX_ITEMS=8
+OPENCLAW_CONTEXT_MAX_ITEMS=12
+OPENCLAW_CONTEXT_MAX_PACKETS=1
+OPENCLAW_CONTEXT_MAX_DIGESTS=1
 ```
 
 Recommended operating model:
@@ -249,6 +254,12 @@ Important boundaries:
 - no always-on crawling
 - no more than the configured source cap
 - research schedules exist but are not installed by default
+
+Practical default limits:
+
+- active items older than `30` days do not participate in active morning-topic selection
+- each morning topic uses at most `8` local items
+- OpenClaw active tasks should think in terms of at most `12` item summaries, `1` research packet, and `1` digest
 
 Reference: `documents/external-research-boundary.md`
 
