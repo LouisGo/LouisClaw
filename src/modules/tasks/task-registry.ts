@@ -3,13 +3,23 @@ import { runPullMarkdownSourcesCommand } from "../intake/pull-markdown.command.j
 import { runProcessCommand } from "../process/process.command.js";
 import { runStatusCommand } from "../pipeline/status.command.js";
 import { runPipelineCommand } from "../pipeline/run.command.js";
+import { runNightlySummaryCommand } from "../pipeline/nightly-summary.command.js";
+import { runCollectExternalResearchCommand } from "../research/collect-external-research.command.js";
+import { runPrepareExternalResearchCommand } from "../research/prepare-external-research.command.js";
 import { runExportSiYuanCommand } from "../siyuan/export-siyuan.command.js";
+import { runPullSiYuanInboxCommand } from "../siyuan/pull-siyuan-inbox.command.js";
+import { runBuildMorningTopicCommand } from "../synthesis/build-morning-topic.command.js";
 
 export type TaskId =
   | "pull_markdown_sources"
+  | "pull_siyuan_inbox"
   | "status_overview"
   | "process_inbox"
+  | "prepare_external_research"
+  | "collect_external_research"
+  | "build_morning_topic"
   | "build_digest"
+  | "nightly_summary"
   | "daily_pipeline"
   | "export_siyuan";
 
@@ -33,6 +43,14 @@ const TASKS: Record<TaskId, TaskDefinition> = {
     costClass: "low",
     run: () => runPullMarkdownSourcesCommand()
   },
+  pull_siyuan_inbox: {
+    id: "pull_siyuan_inbox",
+    description: "Read the configured SiYuan inbox doc and land new appended content",
+    defaultSchedule: "every 1h",
+    dependsOn: [],
+    costClass: "low",
+    run: async () => runPullSiYuanInboxCommand()
+  },
   status_overview: {
     id: "status_overview",
     description: "Show workflow status and landing overview",
@@ -45,9 +63,33 @@ const TASKS: Record<TaskId, TaskDefinition> = {
     id: "process_inbox",
     description: "Move landing files into inbox and process queued inputs",
     defaultSchedule: "every 1h",
-    dependsOn: ["pull_markdown_sources"],
+    dependsOn: ["pull_markdown_sources", "pull_siyuan_inbox"],
     costClass: "low",
     run: async () => runProcessCommand()
+  },
+  prepare_external_research: {
+    id: "prepare_external_research",
+    description: "Prepare a bounded external research request only when local morning-topic materials are insufficient",
+    defaultSchedule: "daily pre-morning-topic / manual",
+    dependsOn: ["process_inbox"],
+    costClass: "low",
+    run: () => runPrepareExternalResearchCommand()
+  },
+  collect_external_research: {
+    id: "collect_external_research",
+    description: "Bounded OpenClaw web research collector for a prepared research request",
+    defaultSchedule: "manual / optional automation",
+    dependsOn: ["prepare_external_research"],
+    costClass: "medium",
+    run: () => runCollectExternalResearchCommand()
+  },
+  build_morning_topic: {
+    id: "build_morning_topic",
+    description: "Generate the morning deep-read topic report from recent local materials",
+    defaultSchedule: "daily morning",
+    dependsOn: ["process_inbox"],
+    costClass: "medium",
+    run: async () => runBuildMorningTopicCommand()
   },
   build_digest: {
     id: "build_digest",
@@ -56,6 +98,14 @@ const TASKS: Record<TaskId, TaskDefinition> = {
     dependsOn: ["process_inbox"],
     costClass: "medium",
     run: () => runDigestCommand()
+  },
+  nightly_summary: {
+    id: "nightly_summary",
+    description: "Run the nightly summary pipeline and publish the daily digest artifacts",
+    defaultSchedule: "daily evening",
+    dependsOn: ["process_inbox", "build_digest", "export_siyuan"],
+    costClass: "medium",
+    run: async () => runNightlySummaryCommand()
   },
   daily_pipeline: {
     id: "daily_pipeline",

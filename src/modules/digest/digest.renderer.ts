@@ -1,5 +1,6 @@
 import { extractFirstUrl } from "../../shared/text.js";
 import { DigestEntry } from "../../domain/item.js";
+import { formatLocalDateTime, formatLocalTime, timezoneLabel } from "../../shared/time.js";
 
 export function renderDailyDigest(date: string, entries: DigestEntry[]): string {
   const followUps = sortEntries(entries.filter((entry) => entry.decision === "follow_up"));
@@ -11,8 +12,9 @@ export function renderDailyDigest(date: string, entries: DigestEntry[]): string 
   const leadLines = renderLeadLines(sortedEntries, digestItems, followUps, archiveItems);
 
   return [
-    `# Daily Digest - ${date}`,
+    `# ${date} 每日总结`,
     "",
+    `> 生成时间：${formatLocalDateTime(new Date())} (${timezoneLabel()})`,
     `> ${headline}`,
     `> 主题分布：${topicLine}`,
     "",
@@ -37,6 +39,7 @@ export function renderItemExport(entry: DigestEntry, rawContent: string): string
     `# ${entry.summary}`,
     "",
     `- **Item ID**: ${entry.id}`,
+    ...(entry.capture_time ? [`- **Capture Time**: ${formatLocalDateTime(entry.capture_time)} (${timezoneLabel()})`] : []),
     `- **Topic**: ${renderTopicLabel(entry.topic)}`,
     `- **Decision**: ${entry.decision}`,
     `- **Reason**: ${localizeReason(entry.reason)}`,
@@ -86,14 +89,16 @@ function renderTopicLine(entries: DigestEntry[]): string {
 function renderEntryLine(entry: DigestEntry): string {
   const summary = renderEntrySummary(entry, 72);
   const reason = compact(localizeReason(entry.reason), 36);
-  return `- [${renderTopicLabel(entry.topic)}] ${summary}｜${reason}`;
+  const time = renderEntryTime(entry.capture_time);
+  return `- ${time}[${renderTopicLabel(entry.topic)}] ${summary}｜${reason}`;
 }
 
 function renderFollowUpLine(entry: DigestEntry): string {
   const action = inferFollowUpAction(entry);
   const summary = renderEntrySummary(entry, 68);
   const reason = compact(localizeReason(entry.reason), 28);
-  return `- ${action}：${summary}｜${reason}`;
+  const time = renderEntryTime(entry.capture_time);
+  return `- ${time}${action}：${summary}｜${reason}`;
 }
 
 function renderLeadLines(
@@ -102,8 +107,15 @@ function renderLeadLines(
   followUps: DigestEntry[],
   archiveItems: DigestEntry[]
 ): string[] {
-  const topTopic = getTopTopic(entries);
-  const topSignal = entries[0];
+  const focusEntries = followUps.length
+    ? followUps
+    : digestItems.length
+      ? digestItems
+      : archiveItems.length
+        ? archiveItems
+        : entries;
+  const topTopic = getTopTopic(focusEntries);
+  const topSignal = focusEntries[0];
   const topDigest = digestItems[0];
   const topFollowUp = followUps[0];
   const topArchive = archiveItems[0];
@@ -111,7 +123,7 @@ function renderLeadLines(
   return [
     `- **主焦点**：${describeTopTopic(topTopic)}`,
     topSignal
-      ? `- **今日判断**：${describeDaySignal(topSignal, followUps.length, digestItems.length)}`
+      ? `- **今日判断**：${describeDaySignal(topTopic, followUps.length, digestItems.length)}`
       : "- **今日判断**：暂无新增信号",
     topDigest
       ? `- **最值得回看**：${renderEntrySummary(topDigest, 64)}`
@@ -156,13 +168,13 @@ function describeTopTopic(topic: string | undefined): string {
   return `${renderTopicLabel(topic)}信号最集中`;
 }
 
-function describeDaySignal(topEntry: DigestEntry, followUpCount: number, digestCount: number): string {
+function describeDaySignal(topTopic: string | undefined, followUpCount: number, digestCount: number): string {
   if (followUpCount > 0) {
     return "今天已经出现需要推进的事项，优先看“需要行动”。";
   }
 
   if (digestCount > 0) {
-    return `今天以信息沉淀为主，首条重点来自${renderTopicLabel(topEntry.topic)}。`;
+    return `今天以信息沉淀为主，当前最集中的信号来自${renderTopicLabel(topTopic || "general")}。`;
   }
 
   return "今天以轻量归档为主，暂无高优先动作。";
@@ -242,4 +254,12 @@ function compact(value: string, maxLength: number): string {
 function renderMarkdownLink(label: string, url: string): string {
   const safeLabel = label.replace(/([\\\[\]])/g, "\\$1");
   return `[${safeLabel}](${url})`;
+}
+
+function renderEntryTime(captureTime: string | undefined): string {
+  if (!captureTime) {
+    return "";
+  }
+
+  return `[${formatLocalTime(captureTime)}] `;
 }

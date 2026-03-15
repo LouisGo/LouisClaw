@@ -3,7 +3,7 @@ import { loadConfig } from "../../app/config.js";
 import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { StateRepository, TaskRunStateEntry } from "../../infra/storage/state-repository.js";
 import { LandingFileService } from "../intake/landing-file.service.js";
-import { dateStamp } from "../../shared/time.js";
+import { dateStamp, formatLocalDateTime, isSameLocalDate, timezoneLabel } from "../../shared/time.js";
 import { fileExists } from "../../shared/fs.js";
 import { listTaskSchedules } from "../tasks/task-schedule-registry.js";
 import { OpenClawCronService } from "../tasks/openclaw-cron.service.js";
@@ -14,7 +14,7 @@ export function runStatusCommand(): void {
   const stateRepository = new StateRepository(config);
   const landingFileService = new LandingFileService(config);
   const today = dateStamp();
-  const items = itemRepository.loadAll().filter((item) => item.capture_time.startsWith(today));
+  const items = itemRepository.loadAll().filter((item) => isSameLocalDate(item.capture_time, today));
   const digestPath = path.join(config.paths.digests, `${today}-daily-digest.md`);
   const landingOverview = landingFileService.overview();
   const taskRunState = stateRepository.loadTaskRunState();
@@ -27,7 +27,7 @@ export function runStatusCommand(): void {
     follow_up: items.filter((item) => item.decision === "follow_up").length
   };
 
-  console.log(`Date: ${today}`);
+  console.log(`Date: ${today} (${timezoneLabel()})`);
   console.log(`Items total: ${counts.total}`);
   console.log(`Drop: ${counts.drop}`);
   console.log(`Archive: ${counts.archive}`);
@@ -42,7 +42,7 @@ export function runStatusCommand(): void {
   }
 
   console.log("Recent task runs:");
-  ["pull_markdown_sources", "process_inbox", "daily_pipeline"].forEach((taskId) => {
+  ["pull_markdown_sources", "pull_siyuan_inbox", "process_inbox", "build_morning_topic", "nightly_summary", "daily_pipeline"].forEach((taskId) => {
     console.log(`- ${taskId}: ${formatTaskRun(taskRunState[taskId])}`);
   });
 
@@ -67,7 +67,7 @@ function formatTaskRun(entry: TaskRunStateEntry | undefined): string {
   const duration = typeof entry.durationMs === "number" ? ` duration=${formatDuration(entry.durationMs)}` : "";
   const reason = entry.error ? ` error=${entry.error}` : "";
 
-  return `${entry.status} at ${finishedAt}${duration}${reason}`;
+  return `${entry.status} at ${formatLocalDateTime(finishedAt)}${duration}${reason}`;
 }
 
 function formatScheduleStatus(enabled: boolean | undefined, jobId: string | undefined): string {

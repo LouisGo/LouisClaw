@@ -3,7 +3,7 @@ import { AppConfig } from "../../app/config.js";
 import { DigestEntry, Item } from "../../domain/item.js";
 import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { writeTextFile } from "../../shared/fs.js";
-import { dateStamp } from "../../shared/time.js";
+import { dateStamp, isSameLocalDate } from "../../shared/time.js";
 import { extractFirstUrl } from "../../shared/text.js";
 import { renderDailyDigest } from "./digest.renderer.js";
 
@@ -29,7 +29,7 @@ export class DigestService {
   generateDaily(): string {
     const today = dateStamp();
     const entries = this.itemRepository.loadAll()
-      .filter((item) => item.capture_time.startsWith(today))
+      .filter((item) => isSameLocalDate(item.capture_time, today))
       .filter((item) => item.decision && item.decision !== "drop")
       .map(toDigestEntry);
 

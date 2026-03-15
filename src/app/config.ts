@@ -20,6 +20,16 @@ const envSchema = z.object({
   SIYUAN_API_TOKEN: z.string().optional(),
   SIYUAN_API_NOTEBOOK: z.string().min(1).optional(),
   SIYUAN_EXPORT_VALIDATE: z.enum(["true", "false"]).optional(),
+  SIYUAN_INBOX_NOTEBOOK: z.string().min(1).optional(),
+  SIYUAN_INBOX_HPATH: z.string().min(1).optional(),
+  SIYUAN_INBOX_TITLE: z.string().min(1).optional(),
+  SIYUAN_INBOX_SOURCE: z.string().min(1).optional(),
+  SIYUAN_INBOX_DEVICE: z.string().min(1).optional(),
+  MORNING_TOPIC_SUBSCRIPTIONS: z.string().optional(),
+  MORNING_TOPIC_LOOKBACK_DAYS: z.coerce.number().int().min(1).max(30).optional(),
+  EXTERNAL_RESEARCH_ENABLED: z.enum(["true", "false"]).optional(),
+  EXTERNAL_RESEARCH_MAX_SOURCES: z.coerce.number().int().min(1).max(12).optional(),
+  EXTERNAL_RESEARCH_MIN_LOCAL_ITEMS: z.coerce.number().int().min(0).max(20).optional(),
   EXPORT_ROOT: z.string().optional(),
   ENABLE_IM_ATTACHMENT_EXPORT: z.enum(["true", "false"]).optional(),
   MARKDOWN_PULL_SOURCES: z.string().optional()
@@ -54,8 +64,20 @@ export interface AppConfig {
     apiKey?: string;
     baseUrl: string;
   };
+  morningTopic: {
+    subscriptions: string[];
+    lookbackDays: number;
+  };
+  externalResearch: {
+    enabled: boolean;
+    maxSources: number;
+    minLocalItems: number;
+  };
   paths: {
     data: string;
+    research: string;
+    researchRequests: string;
+    researchPackets: string;
     landing: string;
     inbox: string;
     raw: string;
@@ -76,6 +98,13 @@ export interface AppConfig {
     apiToken?: string;
     notebook: string;
     validate: boolean;
+    inbox: {
+      notebook?: string;
+      hPath?: string;
+      title?: string;
+      source: string;
+      device: string;
+    };
   };
 }
 
@@ -101,15 +130,34 @@ export function loadConfig(): AppConfig {
       apiKey: env.AI_API_KEY || env.OPENAI_API_KEY,
       baseUrl: env.AI_BASE_URL || "https://api.openai.com/v1"
     },
+    morningTopic: {
+      subscriptions: parseStringList(env.MORNING_TOPIC_SUBSCRIPTIONS),
+      lookbackDays: env.MORNING_TOPIC_LOOKBACK_DAYS || 7
+    },
+    externalResearch: {
+      enabled: env.EXTERNAL_RESEARCH_ENABLED === "true",
+      maxSources: env.EXTERNAL_RESEARCH_MAX_SOURCES || 6,
+      minLocalItems: env.EXTERNAL_RESEARCH_MIN_LOCAL_ITEMS || 3
+    },
     siyuan: {
       driver: env.SIYUAN_EXPORT_DRIVER || "filesystem",
       apiUrl: env.SIYUAN_API_URL || "http://127.0.0.1:6806",
       apiToken: env.SIYUAN_API_TOKEN,
       notebook: env.SIYUAN_API_NOTEBOOK || "AI-Flow",
-      validate: env.SIYUAN_EXPORT_VALIDATE === "true"
+      validate: env.SIYUAN_EXPORT_VALIDATE === "true",
+      inbox: {
+        notebook: env.SIYUAN_INBOX_NOTEBOOK,
+        hPath: normalizeSiYuanHPath(env.SIYUAN_INBOX_HPATH),
+        title: env.SIYUAN_INBOX_TITLE,
+        source: env.SIYUAN_INBOX_SOURCE || "siyuan_inbox",
+        device: env.SIYUAN_INBOX_DEVICE || "siyuan"
+      }
     },
     paths: {
       data: dataRoot,
+      research: path.join(dataRoot, "research"),
+      researchRequests: path.join(dataRoot, "research", "requests"),
+      researchPackets: path.join(dataRoot, "research", "packets"),
       landing: path.join(dataRoot, "landing"),
       inbox: path.join(dataRoot, "inbox"),
       raw: path.join(dataRoot, "raw"),
@@ -130,8 +178,24 @@ export function loadConfig(): AppConfig {
   return config;
 }
 
+function normalizeSiYuanHPath(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+}
+
 function ensureDirectories(config: AppConfig): void {
   ensureDir(config.paths.data);
+  ensureDir(config.paths.research);
+  ensureDir(config.paths.researchRequests);
+  ensureDir(config.paths.researchPackets);
   ensureDir(config.paths.landing);
   ensureDir(config.paths.inbox);
   ensureDir(config.paths.raw);
@@ -159,4 +223,21 @@ function parseMarkdownPullSources(raw: string | undefined, workspaceRoot: string
     device: entry.device || "local",
     title: entry.title
   }));
+}
+
+function parseStringList(raw: string | undefined): string[] {
+  if (!raw) {
+    return [];
+  }
+
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  if (trimmed.startsWith("[")) {
+    return z.array(z.string().min(1)).parse(JSON.parse(trimmed)).map((entry) => entry.trim()).filter(Boolean);
+  }
+
+  return trimmed.split(",").map((entry) => entry.trim()).filter(Boolean);
 }

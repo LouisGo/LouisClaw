@@ -65,7 +65,12 @@ Use standardized task ids when you want manual execution and future scheduling t
 npm run task -- list
 npm run task -- run status_overview
 npm run task -- run process_inbox
+npm run task -- run pull_siyuan_inbox
 npm run task -- run pull_markdown_sources
+npm run task -- run prepare_external_research
+npm run task -- run collect_external_research
+npm run task -- run build_morning_topic
+npm run task -- run nightly_summary
 npm run task -- run build_digest
 npm run task -- run daily_pipeline
 ```
@@ -73,9 +78,14 @@ npm run task -- run daily_pipeline
 Current built-in task ids:
 
 - `pull_markdown_sources`
+- `pull_siyuan_inbox`
 - `status_overview`
 - `process_inbox`
+- `prepare_external_research`
+- `collect_external_research`
+- `build_morning_topic`
 - `build_digest`
+- `nightly_summary`
 - `daily_pipeline`
 - `export_siyuan`
 
@@ -87,18 +97,36 @@ Use schedules when you want OpenClaw cron to trigger the same standardized task 
 npm run schedule -- list
 npm run schedule -- install hourly_process_inbox
 npm run schedule -- install hourly_process_inbox --every 2h
-npm run schedule -- install daily_pipeline_evening
+npm run schedule -- install morning_external_research_request
+npm run schedule -- install morning_external_research_collect
+npm run schedule -- install morning_topic_push
+npm run schedule -- install nightly_summary_push
 ```
 
 Current built-in schedule ids:
 
 - `hourly_process_inbox` -> `process_inbox`
 - `hourly_pull_markdown_sources` -> `pull_markdown_sources`
-- `daily_pipeline_evening` -> `daily_pipeline`
+- `hourly_pull_siyuan_inbox` -> `pull_siyuan_inbox`
+- `morning_external_research_request` -> `prepare_external_research`
+- `morning_external_research_collect` -> `collect_external_research`
+- `morning_topic_push` -> `build_morning_topic`
+- `nightly_summary_push` -> `nightly_summary`
 
 The schedule layer is thin on purpose: it installs or updates OpenClaw cron jobs that tell the agent to run `npm run task -- run <task-id>`.
 
-`npm run status` now also shows the latest recorded run result for `pull_markdown_sources`, `process_inbox`, and `daily_pipeline`, plus current OpenClaw schedule install/enabled state when available.
+`npm run status` now also shows the latest recorded run result for `pull_markdown_sources`, `pull_siyuan_inbox`, `process_inbox`, `build_morning_topic`, `nightly_summary`, and `daily_pipeline`, plus current OpenClaw schedule install/enabled state when available.
+
+## Output rhythm
+
+LouisClaw now distinguishes passive background work from active reading outputs:
+
+- `07:00-01:59`: passive intake / processing runs quietly in the background
+- `02:00-06:59`: quiet hours, no hourly pull/process work
+- `08:00`: one `晨间专题`, intended for `30-60` minutes of focused reading
+- `23:00`: one `每日总结`, intended to close the day
+
+File names stay ASCII-safe and sortable. Human-friendly titles and exact timestamps live in the markdown body and frontmatter instead of the filename.
 
 ## Markdown source pull
 
@@ -141,11 +169,88 @@ V1 behavior:
 - later runs import appended suffix content only
 - in-place rewrites are skipped in v1
 
+## SiYuan inbox pull
+
+If you want LouisClaw to poll a fixed SiYuan doc like `iNBox` through the official API, configure:
+
+```bash
+SIYUAN_API_URL="http://127.0.0.1:6806"
+SIYUAN_API_TOKEN="..."
+SIYUAN_INBOX_NOTEBOOK="Your Notebook"
+SIYUAN_INBOX_HPATH="/Inbox/iNBox"
+```
+
+Optional metadata overrides:
+
+```bash
+SIYUAN_INBOX_TITLE="iNBox"
+SIYUAN_INBOX_SOURCE="siyuan_inbox"
+SIYUAN_INBOX_DEVICE="siyuan"
+```
+
+Then run:
+
+```bash
+npm run task -- run pull_siyuan_inbox
+```
+
+V1 behavior:
+
+- uses the official SiYuan API `getIDsByHPath` + `exportMdContent`
+- first run only seeds source state and does not import historical content
+- later runs import appended suffix content only
+- in-place rewrites are skipped in v1
+
 默认调度顺序：
 
-- `hourly_pull_markdown_sources`: 每小时 `:00`
-- `hourly_process_inbox`: 每小时 `:05`
-- `daily_pipeline_evening`: 每天 `21:10`（Asia/Shanghai）
+- `hourly_pull_markdown_sources`: 每小时 `:00`，但 `02:00-06:59` 静默
+- `hourly_pull_siyuan_inbox`: 每小时 `:02`，但 `02:00-06:59` 静默
+- `hourly_process_inbox`: 每小时 `:05`，但 `02:00-06:59` 静默
+- `morning_topic_push`: 每天 `08:00`（Asia/Shanghai）
+- `nightly_summary_push`: 每天 `23:00`（Asia/Shanghai）
+
+## Morning topic subscriptions
+
+If you want the 08:00 report to prefer your explicitly chosen themes, configure:
+
+```bash
+MORNING_TOPIC_SUBSCRIPTIONS="消息渲染优化,AI 工作流,信息流分层"
+MORNING_TOPIC_LOOKBACK_DAYS=7
+```
+
+Current v1 behavior:
+
+- local-first: it uses recent local items first
+- if no subscription matches, it falls back to the strongest recent emergent topic
+- generated files are written into `data/exports/synthesis/`
+- if SiYuan export is enabled, the morning topic is exported there too
+
+## Bounded external research
+
+If you want OpenClaw to supplement a morning topic with public web sources, keep it bounded:
+
+```bash
+EXTERNAL_RESEARCH_ENABLED=false
+EXTERNAL_RESEARCH_MAX_SOURCES=6
+EXTERNAL_RESEARCH_MIN_LOCAL_ITEMS=3
+```
+
+Recommended operating model:
+
+- default stays `false`
+- LouisClaw first checks whether local topic materials are already sufficient
+- only when local material is below threshold does it prepare one bounded request in `data/research/requests/`
+- only then should OpenClaw fulfill that request and write one packet into `data/research/packets/`
+
+Important boundaries:
+
+- only for subscribed morning topics
+- no open-ended browsing
+- no always-on crawling
+- no more than the configured source cap
+- research schedules exist but are not installed by default
+
+Reference: `documents/external-research-boundary.md`
 
 If you later enable SiYuan export:
 

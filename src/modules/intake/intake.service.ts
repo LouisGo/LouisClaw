@@ -4,7 +4,7 @@ import { AppConfig } from "../../app/config.js";
 import { writeJsonFile } from "../../shared/fs.js";
 import { sha1 } from "../../shared/hash.js";
 import { compactTimestamp, nowIso } from "../../shared/time.js";
-import { normalizeContent } from "../../shared/text.js";
+import { inferTitle, normalizeContent } from "../../shared/text.js";
 
 export class IntakeService {
   constructor(private readonly config: AppConfig) {}
@@ -30,7 +30,7 @@ export class IntakeService {
       raw_content: input.raw_content,
       normalized_content: normalizedContent,
       url: input.url,
-      title: input.title,
+      title: input.title || inferTitle(input.raw_content, input.url),
       tags: [],
       status: "pending",
       value_score: 0,

@@ -28,11 +28,11 @@ export interface ScheduleInstallResult {
 
 export class OpenClawCronService {
   listJobs(): OpenClawCronJob[] {
-    const result = execFileSync("openclaw", ["cron", "list", "--all", "--json"], {
+    const result = execFileSync("openclaw", ["--no-color", "cron", "list", "--all", "--json"], {
       encoding: "utf8"
     });
 
-    const parsed = JSON.parse(result) as OpenClawCronListResponse;
+    const parsed = parseJsonFromCliOutput(result) as OpenClawCronListResponse;
     return parsed.jobs || [];
   }
 
@@ -130,9 +130,12 @@ export class OpenClawCronService {
       "--message",
       this.buildTaskMessage(schedule.taskId),
       "--timeout",
-      String(schedule.timeoutMs),
-      "--no-deliver"
+      String(schedule.timeoutMs)
     ];
+
+    if (!schedule.deliverResult) {
+      args.push("--no-deliver");
+    }
 
     if (trigger.kind === "every") {
       args.push("--every", trigger.value);
@@ -156,6 +159,32 @@ export class OpenClawCronService {
   }
 
   private buildTaskMessage(taskId: string): string {
+    if (taskId === "build_morning_topic") {
+      return "请在当前工作区直接运行 `npm run task -- run build_morning_topic`。不要做额外改动。完成后用简洁中文主动总结：今天的晨间专题标题、材料条数、可去哪里阅读。";
+    }
+
+    if (taskId === "collect_external_research") {
+      return "先检查 `data/research/requests/` 下是否存在最新的 pending research request；如果没有，就停止并简洁说明 skipped。若存在，则严格按 request 文件里的边界执行：只围绕该主题、只用高质量公开来源、最多读取 request 指定数量的来源、不做开放式延伸。完成后把 research packet 写入 request frontmatter 指定的 output_path，并把 request 的 frontmatter status 改成 completed。输出只需简洁说明：topic、sources used、packet path。";
+    }
+
+    if (taskId === "prepare_external_research") {
+      return "请在当前工作区直接运行 `npm run task -- run prepare_external_research`。不要做额外改动，只执行这个标准任务，并用简洁中文总结结果。";
+    }
+
+    if (taskId === "nightly_summary") {
+      return "请在当前工作区直接运行 `npm run task -- run nightly_summary`。不要做额外改动。完成后用简洁中文主动总结：今天总结是否生成成功、digest 路径、是否已同步到思源。";
+    }
+
     return `请在当前工作区直接运行 \`npm run task -- run ${taskId}\`。不要做额外改动，只执行这个标准任务，并用简洁中文总结结果。`;
   }
+}
+
+function parseJsonFromCliOutput(value: string): unknown {
+  const normalized = value.replace(/\u001b\[[0-9;]*m/g, "");
+  const jsonStart = normalized.indexOf("{");
+  if (jsonStart === -1) {
+    throw new Error("OpenClaw cron list did not return JSON output");
+  }
+
+  return JSON.parse(normalized.slice(jsonStart));
 }

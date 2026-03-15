@@ -5,7 +5,7 @@ import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { StateRepository } from "../../infra/storage/state-repository.js";
 import { listFiles, readTextFile, writeTextFile } from "../../shared/fs.js";
 import { nowIso, dateStamp } from "../../shared/time.js";
-import { extractFirstUrl, slugify } from "../../shared/text.js";
+import { extractFirstUrl, fileSlug } from "../../shared/text.js";
 import { SiYuanApiClient } from "./siyuan-api.client.js";
 import { SiYuanApiExportService } from "./siyuan-api-export.service.js";
 
@@ -47,7 +47,7 @@ export class SiYuanExportService {
     const written = items.map((item) => {
       const section = item.decision === "follow_up" ? "follow-ups" : "items";
       const existingPath = itemMap[item.id]?.path;
-      const fileName = `${today}-${item.id}-${slugify(item.title || item.summary || item.topic || "item")}.md`;
+      const fileName = `${today}-${item.id}-${fileSlug(item.title || item.summary || item.topic || "item", item.topic || "item")}.md`;
       const targetPath = existingPath || path.join(this.config.paths.siyuanExportRoot as string, section, fileName);
       const itemUrl = item.url || extractFirstUrl(item.raw_content);
       const body = [

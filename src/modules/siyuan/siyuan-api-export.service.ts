@@ -5,8 +5,8 @@ import { Item } from "../../domain/item.js";
 import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { SiYuanMapEntry, StateRepository } from "../../infra/storage/state-repository.js";
 import { listFiles, readTextFile } from "../../shared/fs.js";
-import { dateStamp, nowIso } from "../../shared/time.js";
-import { extractFirstUrl, slugify } from "../../shared/text.js";
+import { dateStamp, isSameLocalDate, nowIso } from "../../shared/time.js";
+import { extractFirstUrl, fileSlug } from "../../shared/text.js";
 import { renderItemExport } from "../digest/digest.renderer.js";
 import { SiYuanApiClient } from "./siyuan-api.client.js";
 
@@ -37,18 +37,19 @@ export class SiYuanApiExportService {
     written.push(digestDoc.hPath);
 
     const items = this.itemRepository.loadAll()
-      .filter((item) => item.capture_time.startsWith(today))
+      .filter((item) => isSameLocalDate(item.capture_time, today))
       .filter((item) => item.decision === "digest" || item.decision === "follow_up");
 
     for (const item of items) {
       const section = item.decision === "follow_up" ? "follow-ups" : "items";
-      const hPath = `/${section}/${today}-${item.id}-${slugify(item.title || item.summary || item.topic || "item")}`;
+      const hPath = `/${section}/${today}-${item.id}-${fileSlug(item.title || item.summary || item.topic || "item", item.topic || "item")}`;
       const markdown = renderItemExport({
         id: item.id,
         summary: item.summary || item.normalized_content.slice(0, 80),
         reason: item.reason || "No reason",
         topic: item.topic || "general",
         decision: item.decision || "archive",
+        capture_time: item.capture_time,
         url: item.url || extractFirstUrl(item.raw_content)
       }, item.raw_content);
 

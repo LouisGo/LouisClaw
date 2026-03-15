@@ -28,6 +28,22 @@ export interface MarkdownSourceState {
   [sourcePath: string]: MarkdownSourceStateEntry;
 }
 
+export interface SiYuanInboxStateEntry {
+  notebookId: string;
+  notebookName: string;
+  hPath: string;
+  docId: string;
+  contentHash: string;
+  contentLength: number;
+  contentSnapshot: string;
+  lastSeenAt: string;
+  lastImportedAt?: string;
+}
+
+export interface SiYuanInboxState {
+  [sourceKey: string]: SiYuanInboxStateEntry;
+}
+
 export type TaskRunStatus = "running" | "success" | "failed";
 
 export interface TaskRunStateEntry {
@@ -76,6 +92,14 @@ export class StateRepository {
 
   saveMarkdownSourceState(state: MarkdownSourceState): void {
     writeJsonFile(path.join(this.config.paths.state, "markdown-source-state.json"), state);
+  }
+
+  loadSiYuanInboxState(): SiYuanInboxState {
+    return readJsonFile<SiYuanInboxState>(path.join(this.config.paths.state, "siyuan-inbox-state.json")) || {};
+  }
+
+  saveSiYuanInboxState(state: SiYuanInboxState): void {
+    writeJsonFile(path.join(this.config.paths.state, "siyuan-inbox-state.json"), state);
   }
 
   loadTaskRunState(): TaskRunState {

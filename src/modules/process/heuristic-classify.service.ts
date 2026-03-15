@@ -1,4 +1,5 @@
 import { Item } from "../../domain/item.js";
+import { hasActionSignal, inferSummary } from "../../shared/text.js";
 
 type TopicName = "ai" | "engineering" | "video" | "general";
 
@@ -89,19 +90,37 @@ export class HeuristicClassifyService {
     }
 
     const topic = detectTopic(item);
-    const hasActionCue = /todo|follow up|待办|行动|研究|看看|试试/i.test(item.normalized_content);
-    const longEnough = item.normalized_content.length >= 40 || Boolean(item.url);
+    const signalText = `${item.title || ""} ${item.normalized_content}`;
+    const hasActionCue = hasActionSignal(signalText);
+    const longEnough = item.normalized_content.length >= 80;
+    const mediumEnough = item.normalized_content.length >= 40;
+    const hasStructureCue = /(^|\n)#{1,6}\s|(^|\n)\s*[-*+]\s|```|https?:\/\//i.test(item.raw_content);
+    const hasSpecificTopic = topic !== "general";
+    const worthDigest = longEnough
+      || (Boolean(item.url) && mediumEnough)
+      || (hasSpecificTopic && mediumEnough)
+      || hasStructureCue;
+    const valueScore = hasActionCue
+      ? 90
+      : worthDigest
+        ? hasSpecificTopic
+          ? 82
+          : 74
+        : 52;
+    const summary = item.title && item.title.length <= 48
+      ? item.title
+      : inferSummary(item.raw_content, 120, item.title || item.summary);
 
     return {
       ...item,
       topic,
       tags: [topic, item.content_type],
-      summary: item.title || item.normalized_content.slice(0, 120),
-      value_score: hasActionCue ? 85 : longEnough ? 70 : 45,
-      decision: hasActionCue ? "follow_up" : longEnough ? "digest" : "archive",
+      summary,
+      value_score: valueScore,
+      decision: hasActionCue ? "follow_up" : worthDigest ? "digest" : "archive",
       reason: hasActionCue
         ? "Contains action or follow-up signals"
-        : longEnough
+        : worthDigest
           ? "Likely worth reviewing later"
           : "Useful enough to keep but not urgent",
       status: "processed"
