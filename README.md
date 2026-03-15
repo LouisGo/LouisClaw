@@ -238,6 +238,7 @@ MORNING_TOPIC_MAX_ITEMS=8
 OPENCLAW_CONTEXT_MAX_ITEMS=12
 OPENCLAW_CONTEXT_MAX_PACKETS=1
 OPENCLAW_CONTEXT_MAX_DIGESTS=1
+FEISHU_PUSH_TARGET="chat:oc_xxx"
 ```
 
 Recommended operating model:
@@ -260,6 +261,7 @@ Practical default limits:
 - active items older than `30` days do not participate in active morning-topic selection
 - each morning topic uses at most `8` local items
 - OpenClaw active tasks should think in terms of at most `12` item summaries, `1` research packet, and `1` digest
+- if you want scheduled pushes to reach Feishu reliably, set an explicit `FEISHU_PUSH_TARGET` instead of relying on `channel=last`
 
 Reference: `documents/external-research-boundary.md`
 

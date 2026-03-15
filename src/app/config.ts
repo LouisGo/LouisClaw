@@ -35,6 +35,7 @@ const envSchema = z.object({
   OPENCLAW_CONTEXT_MAX_ITEMS: z.coerce.number().int().min(1).max(30).optional(),
   OPENCLAW_CONTEXT_MAX_PACKETS: z.coerce.number().int().min(1).max(5).optional(),
   OPENCLAW_CONTEXT_MAX_DIGESTS: z.coerce.number().int().min(1).max(5).optional(),
+  FEISHU_PUSH_TARGET: z.string().min(1).optional(),
   EXPORT_ROOT: z.string().optional(),
   ENABLE_IM_ATTACHMENT_EXPORT: z.enum(["true", "false"]).optional(),
   MARKDOWN_PULL_SOURCES: z.string().optional()
@@ -86,6 +87,7 @@ export interface AppConfig {
     maxItems: number;
     maxPackets: number;
     maxDigests: number;
+    feishuPushTarget?: string;
   };
   paths: {
     data: string;
@@ -160,7 +162,8 @@ export function loadConfig(): AppConfig {
     openclawContext: {
       maxItems: env.OPENCLAW_CONTEXT_MAX_ITEMS || 12,
       maxPackets: env.OPENCLAW_CONTEXT_MAX_PACKETS || 1,
-      maxDigests: env.OPENCLAW_CONTEXT_MAX_DIGESTS || 1
+      maxDigests: env.OPENCLAW_CONTEXT_MAX_DIGESTS || 1,
+      feishuPushTarget: env.FEISHU_PUSH_TARGET
     },
     siyuan: {
       driver: env.SIYUAN_EXPORT_DRIVER || "filesystem",

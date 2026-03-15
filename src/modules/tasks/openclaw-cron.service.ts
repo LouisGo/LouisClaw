@@ -119,6 +119,7 @@ export class OpenClawCronService {
     options: ScheduleInstallOptions,
     allowEnableFlag: boolean
   ): string[] {
+    const config = loadConfig();
     const args = [
       "--name",
       schedule.name,
@@ -136,6 +137,8 @@ export class OpenClawCronService {
 
     if (!schedule.deliverResult) {
       args.push("--no-deliver");
+    } else if (config.openclawContext.feishuPushTarget) {
+      args.push("--channel", "feishu", "--to", config.openclawContext.feishuPushTarget);
     }
 
     if (trigger.kind === "every") {
@@ -175,7 +178,7 @@ export class OpenClawCronService {
     }
 
     if (taskId === "nightly_summary") {
-      return "请在当前工作区直接运行 `npm run task -- run nightly_summary`。不要做额外改动。完成后用简洁中文主动总结：今天总结是否生成成功、digest 路径、是否已同步到思源。";
+      return "请在当前工作区直接运行 `npm run task -- run nightly_summary`。不要做额外改动。完成后严格按下面模板主动推送，不要过度缩写，也不要只发一句话：\n\n今日总结：<成功/失败>\nDigest 路径：<path>\n导出附件路径：<path>\n已同步到思源：<是/否>\n本次导出数量：<number>\n一句话说明：<今天这次总结的总体情况>\n\n如果任务失败，保留同样字段，并在一句话说明里写清失败原因。";
     }
 
     return `请在当前工作区直接运行 \`npm run task -- run ${taskId}\`。不要做额外改动，只执行这个标准任务，并用简洁中文总结结果。`;
