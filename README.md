@@ -81,6 +81,9 @@ Current built-in task ids:
 - `pull_siyuan_inbox`
 - `status_overview`
 - `process_inbox`
+- `prepare_daily_ai_news`
+- `collect_daily_ai_news`
+- `enrich_daily_ai_news`
 - `prepare_external_research`
 - `collect_external_research`
 - `build_morning_topic`
@@ -108,6 +111,9 @@ Current built-in schedule ids:
 - `hourly_process_inbox` -> `process_inbox`
 - `hourly_pull_markdown_sources` -> `pull_markdown_sources`
 - `hourly_pull_siyuan_inbox` -> `pull_siyuan_inbox`
+- `morning_daily_ai_news_request` -> `prepare_daily_ai_news`
+- `morning_daily_ai_news_collect` -> `collect_daily_ai_news`
+- `morning_daily_ai_news_enrich` -> `enrich_daily_ai_news`
 - `morning_external_research_request` -> `prepare_external_research`
 - `morning_external_research_collect` -> `collect_external_research`
 - `morning_topic_push` -> `build_morning_topic`
@@ -206,8 +212,45 @@ V1 behavior:
 - `hourly_pull_markdown_sources`: 每小时 `:00`，但 `02:00-06:59` 静默
 - `hourly_pull_siyuan_inbox`: 每小时 `:02`，但 `02:00-06:59` 静默
 - `hourly_process_inbox`: 每小时 `:05`，但 `02:00-06:59` 静默
+- `morning_daily_ai_news_request`: 每天 `07:08`（Asia/Shanghai，默认不安装）
+- `morning_daily_ai_news_collect`: 每天 `07:18`（Asia/Shanghai，默认不安装）
+- `morning_daily_ai_news_enrich`: 每天 `07:26`（Asia/Shanghai，默认不安装）
 - `morning_topic_push`: 每天 `08:00`（Asia/Shanghai）
 - `nightly_summary_push`: 每天 `23:00`（Asia/Shanghai）
+
+## Daily AI news module
+
+Morning topic now supports an additional fixed section: `今日 AI 重磅新闻`.
+
+Behavior:
+
+- keeps the report `local-first`
+- splits the workflow into deterministic collection and later LLM enrichment
+- collector only uses fixed high-quality feeds / RSS / whitelist entry pages instead of broad web search
+- collector marks English headlines as pending enrichment instead of translating in Node
+- enrich layer fills `title_zh` later while preserving the original title and fact fields
+- defaults to `6` items, caps at `8`, and keeps Chinese coverage to `1-2` items
+- intentionally reserves room for external critique / risk / commercial-reality signals instead of only official announcements
+
+Recommended env knobs:
+
+```bash
+AI_NEWS_ENABLED=true
+AI_NEWS_TARGET_COUNT=6
+AI_NEWS_MAX_COUNT=8
+AI_NEWS_TARGET_CN=1
+AI_NEWS_MAX_CN=2
+AI_NEWS_OFFICIAL_MAX=3
+AI_NEWS_MAJOR_MEDIA_MIN=2
+AI_NEWS_WINDOW_HOURS=24
+```
+
+Generated artifacts:
+
+- request: `data/news/requests/YYYY-MM-DD-daily-ai-news-request.md`
+- packet: `data/news/packets/YYYY-MM-DD-daily-ai-news.md`
+
+The collector now runs inside this repo with a narrow scope: fixed RSS feeds and whitelist entry pages only. It does not do broad web search, and selection is constrained by the request file plus trusted-source policy.
 
 ## Morning topic subscriptions
 

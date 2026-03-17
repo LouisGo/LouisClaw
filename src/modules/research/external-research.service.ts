@@ -39,6 +39,14 @@ export class ExternalResearchService {
 
     const topicSlug = fileSlug(canonicalTopic, "topic");
     const localItems = this.findMatchingItems(canonicalTopic);
+    if (!localItems.length) {
+      return {
+        topicLabel: canonicalTopic,
+        localItemCount: 0,
+        skippedReason: "no_local_material"
+      };
+    }
+
     if (localItems.length >= this.config.externalResearch.minLocalItems) {
       return {
         topicLabel: canonicalTopic,

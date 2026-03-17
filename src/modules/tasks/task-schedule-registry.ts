@@ -4,6 +4,9 @@ export type ScheduleId =
   | "hourly_pull_markdown_sources"
   | "hourly_pull_siyuan_inbox"
   | "hourly_process_inbox"
+  | "morning_daily_ai_news_request"
+  | "morning_daily_ai_news_collect"
+  | "morning_daily_ai_news_enrich"
   | "morning_external_research_request"
   | "morning_external_research_collect"
   | "morning_topic_push"
@@ -60,6 +63,45 @@ const SCHEDULES: Record<ScheduleId, TaskScheduleDefinition> = {
       tz: "Asia/Shanghai"
     },
     timeoutMs: 300000
+  },
+  morning_daily_ai_news_request: {
+    id: "morning_daily_ai_news_request",
+    taskId: "prepare_daily_ai_news",
+    name: "LouisClaw · morning daily AI news request",
+    description: "每天晨间生成一份受限 AI 新闻抓取请求，只允许白名单可信来源。",
+    trigger: {
+      kind: "cron",
+      value: "8 7 * * *",
+      tz: "Asia/Shanghai"
+    },
+    timeoutMs: 300000,
+    installedByDefault: false
+  },
+  morning_daily_ai_news_collect: {
+    id: "morning_daily_ai_news_collect",
+    taskId: "collect_daily_ai_news",
+    name: "LouisClaw · morning daily AI news collect",
+    description: "根据固定高质量 RSS / 白名单新闻页收集每日 AI 高质量信号，默认不安装。",
+    trigger: {
+      kind: "cron",
+      value: "18 7 * * *",
+      tz: "Asia/Shanghai"
+    },
+    timeoutMs: 900000,
+    installedByDefault: false
+  },
+  morning_daily_ai_news_enrich: {
+    id: "morning_daily_ai_news_enrich",
+    taskId: "enrich_daily_ai_news",
+    name: "LouisClaw · morning daily AI news enrich",
+    description: "在确定性采集完成后，由 LLM 只补英文标题的中文翻译等轻量 enrich，默认不安装。",
+    trigger: {
+      kind: "cron",
+      value: "26 7 * * *",
+      tz: "Asia/Shanghai"
+    },
+    timeoutMs: 900000,
+    installedByDefault: false
   },
   morning_external_research_request: {
     id: "morning_external_research_request",

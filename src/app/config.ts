@@ -27,6 +27,14 @@ const envSchema = z.object({
   SIYUAN_INBOX_DEVICE: z.string().min(1).optional(),
   MORNING_TOPIC_SUBSCRIPTIONS: z.string().optional(),
   MORNING_TOPIC_LOOKBACK_DAYS: z.coerce.number().int().min(1).max(30).optional(),
+  AI_NEWS_ENABLED: z.enum(["true", "false"]).optional(),
+  AI_NEWS_TARGET_COUNT: z.coerce.number().int().min(1).max(12).optional(),
+  AI_NEWS_MAX_COUNT: z.coerce.number().int().min(1).max(12).optional(),
+  AI_NEWS_TARGET_CN: z.coerce.number().int().min(0).max(4).optional(),
+  AI_NEWS_MAX_CN: z.coerce.number().int().min(0).max(4).optional(),
+  AI_NEWS_OFFICIAL_MAX: z.coerce.number().int().min(0).max(8).optional(),
+  AI_NEWS_MAJOR_MEDIA_MIN: z.coerce.number().int().min(0).max(8).optional(),
+  AI_NEWS_WINDOW_HOURS: z.coerce.number().int().min(1).max(48).optional(),
   EXTERNAL_RESEARCH_ENABLED: z.enum(["true", "false"]).optional(),
   EXTERNAL_RESEARCH_MAX_SOURCES: z.coerce.number().int().min(1).max(12).optional(),
   EXTERNAL_RESEARCH_MIN_LOCAL_ITEMS: z.coerce.number().int().min(0).max(20).optional(),
@@ -74,6 +82,16 @@ export interface AppConfig {
     subscriptions: string[];
     lookbackDays: number;
   };
+  aiNews: {
+    enabled: boolean;
+    targetCount: number;
+    maxCount: number;
+    targetCnCount: number;
+    maxCnCount: number;
+    officialMaxCount: number;
+    majorMediaMinCount: number;
+    windowHours: number;
+  };
   externalResearch: {
     enabled: boolean;
     maxSources: number;
@@ -94,6 +112,9 @@ export interface AppConfig {
     research: string;
     researchRequests: string;
     researchPackets: string;
+    news: string;
+    newsRequests: string;
+    newsPackets: string;
     landing: string;
     inbox: string;
     raw: string;
@@ -150,6 +171,16 @@ export function loadConfig(): AppConfig {
       subscriptions: parseStringList(env.MORNING_TOPIC_SUBSCRIPTIONS),
       lookbackDays: env.MORNING_TOPIC_LOOKBACK_DAYS || 7
     },
+    aiNews: {
+      enabled: env.AI_NEWS_ENABLED !== "false",
+      targetCount: env.AI_NEWS_TARGET_COUNT || 6,
+      maxCount: env.AI_NEWS_MAX_COUNT || 8,
+      targetCnCount: env.AI_NEWS_TARGET_CN || 1,
+      maxCnCount: env.AI_NEWS_MAX_CN || 2,
+      officialMaxCount: env.AI_NEWS_OFFICIAL_MAX || 3,
+      majorMediaMinCount: env.AI_NEWS_MAJOR_MEDIA_MIN || 2,
+      windowHours: env.AI_NEWS_WINDOW_HOURS || 24
+    },
     externalResearch: {
       enabled: env.EXTERNAL_RESEARCH_ENABLED === "true",
       maxSources: env.EXTERNAL_RESEARCH_MAX_SOURCES || 6,
@@ -184,6 +215,9 @@ export function loadConfig(): AppConfig {
       research: path.join(dataRoot, "research"),
       researchRequests: path.join(dataRoot, "research", "requests"),
       researchPackets: path.join(dataRoot, "research", "packets"),
+      news: path.join(dataRoot, "news"),
+      newsRequests: path.join(dataRoot, "news", "requests"),
+      newsPackets: path.join(dataRoot, "news", "packets"),
       landing: path.join(dataRoot, "landing"),
       inbox: path.join(dataRoot, "inbox"),
       raw: path.join(dataRoot, "raw"),
@@ -199,6 +233,22 @@ export function loadConfig(): AppConfig {
       siyuanExportRoot: env.SIYUAN_EXPORT_ROOT ? path.resolve(workspaceRoot, env.SIYUAN_EXPORT_ROOT) : undefined
     }
   };
+
+  if (config.aiNews.targetCount > config.aiNews.maxCount) {
+    throw new Error("AI 新闻配置无效：AI_NEWS_TARGET_COUNT 不能大于 AI_NEWS_MAX_COUNT");
+  }
+
+  if (config.aiNews.targetCnCount > config.aiNews.maxCnCount) {
+    throw new Error("AI 新闻配置无效：AI_NEWS_TARGET_CN 不能大于 AI_NEWS_MAX_CN");
+  }
+
+  if (config.aiNews.officialMaxCount > config.aiNews.maxCount) {
+    throw new Error("AI 新闻配置无效：AI_NEWS_OFFICIAL_MAX 不能大于 AI_NEWS_MAX_COUNT");
+  }
+
+  if (config.aiNews.majorMediaMinCount > config.aiNews.maxCount) {
+    throw new Error("AI 新闻配置无效：AI_NEWS_MAJOR_MEDIA_MIN 不能大于 AI_NEWS_MAX_COUNT");
+  }
 
   ensureDirectories(config);
   return config;
@@ -222,6 +272,9 @@ function ensureDirectories(config: AppConfig): void {
   ensureDir(config.paths.research);
   ensureDir(config.paths.researchRequests);
   ensureDir(config.paths.researchPackets);
+  ensureDir(config.paths.news);
+  ensureDir(config.paths.newsRequests);
+  ensureDir(config.paths.newsPackets);
   ensureDir(config.paths.landing);
   ensureDir(config.paths.inbox);
   ensureDir(config.paths.raw);

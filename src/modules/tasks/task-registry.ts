@@ -1,5 +1,8 @@
 import { runDigestCommand } from "../digest/digest.command.js";
 import { runPullMarkdownSourcesCommand } from "../intake/pull-markdown.command.js";
+import { runCollectDailyAiNewsCommand } from "../news/collect-daily-ai-news.command.js";
+import { runEnrichDailyAiNewsCommand } from "../news/enrich-daily-ai-news.command.js";
+import { runPrepareDailyAiNewsCommand } from "../news/prepare-daily-ai-news.command.js";
 import { runProcessCommand } from "../process/process.command.js";
 import { runStatusCommand } from "../pipeline/status.command.js";
 import { runPipelineCommand } from "../pipeline/run.command.js";
@@ -15,6 +18,9 @@ export type TaskId =
   | "pull_siyuan_inbox"
   | "status_overview"
   | "process_inbox"
+  | "prepare_daily_ai_news"
+  | "collect_daily_ai_news"
+  | "enrich_daily_ai_news"
   | "prepare_external_research"
   | "collect_external_research"
   | "build_morning_topic"
@@ -67,6 +73,30 @@ const TASKS: Record<TaskId, TaskDefinition> = {
     costClass: "low",
     run: async () => runProcessCommand()
   },
+  prepare_daily_ai_news: {
+    id: "prepare_daily_ai_news",
+    description: "Prepare the daily AI news request for the morning report using a trusted-source whitelist",
+    defaultSchedule: "daily pre-morning-topic / manual",
+    dependsOn: [],
+    costClass: "low",
+    run: () => runPrepareDailyAiNewsCommand()
+  },
+  collect_daily_ai_news: {
+    id: "collect_daily_ai_news",
+    description: "Collect the daily AI news packet from fixed trusted feeds and whitelist entry pages",
+    defaultSchedule: "manual / optional automation",
+    dependsOn: ["prepare_daily_ai_news"],
+    costClass: "medium",
+    run: () => runCollectDailyAiNewsCommand()
+  },
+  enrich_daily_ai_news: {
+    id: "enrich_daily_ai_news",
+    description: "LLM enrichment layer for daily AI news titles and wording after deterministic collection",
+    defaultSchedule: "manual / optional automation",
+    dependsOn: ["collect_daily_ai_news"],
+    costClass: "medium",
+    run: () => runEnrichDailyAiNewsCommand()
+  },
   prepare_external_research: {
     id: "prepare_external_research",
     description: "Prepare a bounded external research request only when local morning-topic materials are insufficient",
@@ -85,7 +115,7 @@ const TASKS: Record<TaskId, TaskDefinition> = {
   },
   build_morning_topic: {
     id: "build_morning_topic",
-    description: "Generate the morning deep-read topic report from recent local materials",
+    description: "Generate the morning deep-read topic report from recent local materials and the daily trusted AI news module",
     defaultSchedule: "daily morning",
     dependsOn: ["process_inbox"],
     costClass: "medium",

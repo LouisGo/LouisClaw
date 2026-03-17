@@ -166,7 +166,19 @@ export class OpenClawCronService {
     const config = loadConfig();
 
     if (taskId === "build_morning_topic") {
-      return `请在当前工作区直接运行 \`npm run task -- run build_morning_topic\`。不要做额外改动。输入边界：最多参考 ${config.openclawContext.maxItems} 条 item 摘要、${config.openclawContext.maxPackets} 个 research packet、${config.openclawContext.maxDigests} 个 digest，不要扫描整个 data 目录。完成后用简洁中文主动总结：今天的晨间专题标题、材料条数、可去哪里阅读。`;
+      return `请在当前工作区直接运行 \`npm run task -- run build_morning_topic\`。不要做额外改动。输入边界：最多参考 ${config.openclawContext.maxItems} 条 item 摘要、${config.openclawContext.maxPackets} 个 research packet、${config.openclawContext.maxDigests} 个 digest，不要扫描整个 data 目录。若当天存在 AI 新闻 packet，请一并渲染。完成后用简洁中文主动总结：今天的晨间专题标题、材料条数、AI 新闻条数、可去哪里阅读。`;
+    }
+
+    if (taskId === "collect_daily_ai_news") {
+      return "请在当前工作区直接运行 `npm run task -- run collect_daily_ai_news`。不要做额外改动，只执行这个标准任务，并用简洁中文总结结果。";
+    }
+
+    if (taskId === "prepare_daily_ai_news") {
+      return "请在当前工作区直接运行 `npm run task -- run prepare_daily_ai_news`。不要做额外改动，只执行这个标准任务，并用简洁中文总结结果。";
+    }
+
+    if (taskId === "enrich_daily_ai_news") {
+      return "请在当前工作区直接运行 `npm run task -- run enrich_daily_ai_news`。不要做额外改动，只执行这个标准任务，并用简洁中文总结结果。";
     }
 
     if (taskId === "collect_external_research") {

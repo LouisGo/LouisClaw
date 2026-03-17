@@ -7,7 +7,7 @@ import { MorningTopicService } from "./morning-topic.service.js";
 export async function runBuildMorningTopicCommand(): Promise<void> {
   const config = loadConfig();
   const service = new MorningTopicService(config, new ItemRepository(config));
-  const result = service.build();
+  const result = await service.build();
 
   if (!result.filePath || !result.title) {
     logRun(config, `morning topic skipped reason=${result.skippedReason || "unknown"}`);
@@ -19,6 +19,7 @@ export async function runBuildMorningTopicCommand(): Promise<void> {
   console.log(`Morning topic: ${result.title}`);
   console.log(`Source type: ${result.sourceType}`);
   console.log(`Items: ${result.itemCount}`);
+  console.log(`AI news: ${result.newsCount}`);
   console.log(`Path: ${result.filePath}`);
 
   if (config.flags.enableSiYuanExport) {

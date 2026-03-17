@@ -3,6 +3,8 @@ import matter from "gray-matter";
 import { AppConfig } from "../../app/config.js";
 import { Item } from "../../domain/item.js";
 import { ItemRepository } from "../../infra/storage/item-repository.js";
+import { DailyAiNewsPacket, DailyAiNewsService, renderDailyAiNewsSummary } from "../news/daily-ai-news.service.js";
+import { DailyAiNewsWorkflowService } from "../news/daily-ai-news-workflow.service.js";
 import { listFiles, readTextFile, writeTextFile } from "../../shared/fs.js";
 import { dateStamp, formatLocalDateTime, formatLocalTime, nowIso, timezoneLabel } from "../../shared/time.js";
 import { fileSlug } from "../../shared/text.js";
@@ -29,6 +31,7 @@ export interface MorningTopicBuildResult {
   filePath?: string;
   title?: string;
   itemCount: number;
+  newsCount: number;
   sourceType?: "subscription" | "system";
   skippedReason?: string;
 }
@@ -39,11 +42,12 @@ export class MorningTopicService {
     private readonly itemRepository: ItemRepository
   ) {}
 
-  build(): MorningTopicBuildResult {
+  async build(): Promise<MorningTopicBuildResult> {
     const items = this.loadRecentItems();
     if (!items.length) {
       return {
         itemCount: 0,
+        newsCount: 0,
         skippedReason: "no_recent_items"
       };
     }
@@ -52,13 +56,16 @@ export class MorningTopicService {
     if (!candidate) {
       return {
         itemCount: 0,
+        newsCount: 0,
         skippedReason: "no_topic_candidate"
       };
     }
 
     const today = dateStamp();
+    await new DailyAiNewsWorkflowService(this.config).ensureReadyForMorningTopic();
+    const dailyAiNewsPacket = new DailyAiNewsService(this.config).loadLatestPacket(today);
     const title = `晨间专题｜${candidate.label}`;
-    const body = renderMorningTopic(today, candidate, this.config.morningTopic.lookbackDays);
+    const body = renderMorningTopic(today, candidate, this.config.morningTopic.lookbackDays, dailyAiNewsPacket);
     const fileName = `${today}-morning-topic-${fileSlug(candidate.label, candidate.slug || "topic")}.md`;
     const filePath = path.join(this.config.paths.exportSynthesis, fileName);
 
@@ -72,13 +79,16 @@ export class MorningTopicService {
       scope_ref: candidate.slug,
       source_item_ids: candidate.items.map((item) => item.id),
       publish_status: "draft",
-      source_policy: candidate.researchPacket ? "local-plus-web" : "local-first"
+      source_policy: deriveSourcePolicy(candidate.researchPacket, dailyAiNewsPacket),
+      news_packet_path: dailyAiNewsPacket?.filePath,
+      news_entry_count: dailyAiNewsPacket?.entries.length || 0
     }));
 
     return {
       filePath,
       title,
       itemCount: candidate.items.length,
+      newsCount: dailyAiNewsPacket?.entries.length || 0,
       sourceType: candidate.sourceType
     };
   }
@@ -125,7 +135,7 @@ export class MorningTopicService {
           : `你已订阅这个主题，最近 ${matched.length} 条材料已经足够支撑一轮 30-60 分钟的晨间深读。`,
         researchPacket
       };
-    }).filter((candidate) => candidate.items.length > 0 || candidate.researchPacket);
+    }).filter((candidate) => candidate.items.length > 0);
 
     return candidates.sort((left, right) => scoreCandidate(right) - scoreCandidate(left))[0];
   }
@@ -176,7 +186,12 @@ export class MorningTopicService {
   }
 }
 
-function renderMorningTopic(date: string, candidate: TopicCandidate, lookbackDays: number): string {
+function renderMorningTopic(
+  date: string,
+  candidate: TopicCandidate,
+  lookbackDays: number,
+  dailyAiNewsPacket?: DailyAiNewsPacket
+): string {
   const sortedByTime = [...candidate.items].sort((left, right) => (left.capture_time || "").localeCompare(right.capture_time || ""));
   const followUps = candidate.items.filter((item) => item.decision === "follow_up");
   const digests = candidate.items.filter((item) => item.decision === "digest");
@@ -198,6 +213,7 @@ function renderMorningTopic(date: string, candidate: TopicCandidate, lookbackDay
     `> 选题来源：${candidate.sourceType === "subscription" ? "你的订阅主题" : "系统识别的近期高频主题"}`,
     `> 材料窗口：近 ${lookbackDays} 天，本地材料 ${candidate.items.length} 条`,
     ...(candidate.researchPacket ? [`> 外部补充：已接入受限 research packet（${candidate.researchPacket.sourceUrls.length} 个来源）`] : []),
+    ...(dailyAiNewsPacket ? [`> AI 新闻：已附 ${dailyAiNewsPacket.entries.length} 条可信新闻`] : []),
     "",
     "## 为什么今天读这个",
     candidate.whyNow,
@@ -205,10 +221,12 @@ function renderMorningTopic(date: string, candidate: TopicCandidate, lookbackDay
     "## 关键信号",
     ...keyPoints.map((point) => `- ${point}`),
     "",
-    ...(rawSignals.length ? [`## 时间线（按发生顺序，精确到秒）`, ...rawSignals, ""] : []),
+    ...(dailyAiNewsPacket ? renderDailyAiNewsSection(dailyAiNewsPacket) : []),
     "## 当前判断",
     ...renderCurrentJudgment(candidate.label, candidate.items.length, followUps.length, digests.length, Boolean(candidate.researchPacket)),
     ...(candidate.researchPacket?.confidenceNote ? [`- 外部资料置信说明：${candidate.researchPacket.confidenceNote}`] : []),
+    ...(dailyAiNewsPacket?.confidenceNote ? [`- AI 新闻置信说明：${dailyAiNewsPacket.confidenceNote}`] : []),
+    ...(dailyAiNewsPacket ? renderDailyAiNewsSummary(dailyAiNewsPacket) : []),
     "",
     "## 建议你今天带着什么问题读",
     ...nextSteps.map((step) => `- ${step}`),
@@ -219,6 +237,7 @@ function renderMorningTopic(date: string, candidate: TopicCandidate, lookbackDay
     `- 如果你之后点名这个主题要继续深入，我会把它升级成更完整的专题报告。`,
     "",
     ...(candidate.items.length ? [`## 代表材料（${candidate.items.length}）`, ...candidate.items.map((item) => `- [${formatLocalTime(item.capture_time)}] ${summarizeItem(item)} (${item.id})`), ""] : []),
+    ...(rawSignals.length ? [`## 时间线（按发生顺序，精确到秒）`, ...rawSignals, ""] : []),
     ...(candidate.researchPacket ? renderResearchPacketSection(candidate.researchPacket) : []),
     `> 日期键：${date}`,
     ""
@@ -336,6 +355,34 @@ function renderCurrentJudgment(
 
   lines.push("- 如果你今天早上只读一篇，这个主题已经具备足够的密度，能帮你快速进入状态。");
   return lines;
+}
+
+function deriveSourcePolicy(researchPacket?: ResearchPacket, dailyAiNewsPacket?: DailyAiNewsPacket): string {
+  if (researchPacket && dailyAiNewsPacket) {
+    return "local-plus-web-plus-news";
+  }
+
+  if (researchPacket) {
+    return "local-plus-web";
+  }
+
+  if (dailyAiNewsPacket) {
+    return "local-plus-news";
+  }
+
+  return "local-first";
+}
+
+function renderDailyAiNewsSection(packet: DailyAiNewsPacket): string[] {
+  return [
+    `## 今日 AI 重磅新闻（${packet.entries.length} 条）`,
+    ...packet.entries.map((entry) => {
+      const displayTitle = entry.titleZh ? `${entry.title}（${entry.titleZh}）` : entry.title;
+      const whyPart = entry.why ? `｜${entry.why}` : "";
+      return `- [${displayTitle}](${entry.url})｜${entry.source}｜${entry.region}｜${entry.tier}${whyPart}`;
+    }),
+    ""
+  ];
 }
 
 function renderResearchPacketSection(packet: ResearchPacket): string[] {
