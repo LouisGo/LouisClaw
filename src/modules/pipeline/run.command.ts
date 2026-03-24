@@ -1,28 +1,29 @@
 import { loadConfig } from "../../app/config.js";
-import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { logRun } from "../../shared/log.js";
 import { runProcessCommand } from "../process/process.command.js";
-import { DigestService } from "../digest/digest.service.js";
-import { ExportService } from "../export/export.service.js";
+import { runExportSiYuanCommand } from "../siyuan/export-siyuan.command.js";
+import { EditorialService } from "../editorial/editorial.service.js";
+import { ItemRepository } from "../../infra/storage/item-repository.js";
 
 export async function runPipelineCommand(): Promise<void> {
   await runProcessCommand();
 
   const config = loadConfig();
-  const itemRepository = new ItemRepository(config);
-  const digestService = new DigestService(config, itemRepository);
-  const exportService = new ExportService(config, itemRepository);
+  const service = new EditorialService(config, new ItemRepository(config));
+  const morning = service.buildMorningBrief();
+  const evening = service.buildEveningReview();
+  const knowledge = service.buildKnowledgeNote({ theme: "知识沉淀" });
 
-  const digestPath = digestService.generateDaily();
-  const digestAttachmentPath = exportService.exportDigestAttachment(digestPath);
-  const itemExports = exportService.exportProcessedItems();
+  logRun(config, `pipeline morning=${morning.filePath}`);
+  logRun(config, `pipeline evening=${evening.filePath}`);
+  logRun(config, `pipeline knowledge=${knowledge.filePath}`);
 
-  logRun(config, `pipeline run complete digest=${digestPath}`);
-  logRun(config, `pipeline digest attachment exported ${digestAttachmentPath}`);
-  logRun(config, `pipeline item exports count=${itemExports.length}`);
+  if (config.flags.enableSiYuanExport) {
+    await runExportSiYuanCommand();
+  }
 
   console.log(`Pipeline complete`);
-  console.log(`Digest: ${digestPath}`);
-  console.log(`Digest attachment: ${digestAttachmentPath}`);
-  console.log(`Item exports: ${itemExports.length}`);
+  console.log(`Morning: ${morning.filePath}`);
+  console.log(`Evening: ${evening.filePath}`);
+  console.log(`Knowledge: ${knowledge.filePath}`);
 }

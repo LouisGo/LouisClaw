@@ -9,6 +9,9 @@ import { runStatusCommand } from "../modules/pipeline/status.command.js";
 import { runTaskListCommand, runTaskRunCommand } from "../modules/tasks/task.command.js";
 import { runScheduleInstallCommand, runScheduleListCommand } from "../modules/tasks/task-schedule.command.js";
 import { runWebIntakeCommand } from "../modules/intake/web-intake.command.js";
+import { runMorningCommand } from "../modules/editorial/morning.command.js";
+import { runEveningCommand } from "../modules/editorial/evening.command.js";
+import { runKnowledgeCommand } from "../modules/editorial/knowledge.command.js";
 
 const program = new Command();
 
@@ -38,6 +41,9 @@ program
 program.command("process").action(async () => runProcessCommand());
 program.command("watch").action(runWatchCommand);
 program.command("digest").action(runDigestCommand);
+program.command("morning").option("--theme <theme>").action((options) => runMorningCommand(options));
+program.command("evening").option("--theme <theme>").action((options) => runEveningCommand(options));
+program.command("knowledge").option("--theme <theme>").action((options) => runKnowledgeCommand(options));
 program.command("run").action(async () => runPipelineCommand());
 program.command("status").action(runStatusCommand);
 program.command("export-siyuan").action(async () => runExportSiYuanCommand());

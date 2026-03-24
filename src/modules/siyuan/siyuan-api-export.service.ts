@@ -1,13 +1,9 @@
 import path from "node:path";
 import matter from "gray-matter";
 import { AppConfig } from "../../app/config.js";
-import { Item } from "../../domain/item.js";
 import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { SiYuanMapEntry, StateRepository } from "../../infra/storage/state-repository.js";
 import { listFiles, readTextFile } from "../../shared/fs.js";
-import { dateStamp, isSameLocalDate, nowIso } from "../../shared/time.js";
-import { extractFirstUrl, fileSlug } from "../../shared/text.js";
-import { renderItemExport } from "../digest/digest.renderer.js";
 import { SiYuanApiClient } from "./siyuan-api.client.js";
 
 export class SiYuanApiExportService {
@@ -21,66 +17,15 @@ export class SiYuanApiExportService {
   async export(): Promise<string[]> {
     const notebookId = await this.ensureNotebook(this.config.siyuan.notebook);
     const itemMap = this.stateRepository.loadSiYuanMap();
-    const today = dateStamp();
     const written: string[] = [];
 
-    const digestPath = path.join(this.config.paths.digests, `${today}-daily-digest.md`);
-    const digestMarkdown = readTextFile(digestPath);
-    const digestHPath = `/digests/${today}-daily-digest`;
-    const digestDoc = await this.ensureDoc(notebookId, `digest:${today}`, digestHPath, digestMarkdown, itemMap);
-    itemMap[`digest:${today}`] = {
-      mode: "api",
-      notebookId,
-      docId: digestDoc.docId,
-      path: digestDoc.hPath
-    };
-    written.push(digestDoc.hPath);
-
-    const items = this.itemRepository.loadAll()
-      .filter((item) => isSameLocalDate(item.capture_time, today))
-      .filter((item) => item.decision === "digest" || item.decision === "follow_up");
-
-    for (const item of items) {
-      const section = item.decision === "follow_up" ? "follow-ups" : "items";
-      const hPath = `/${section}/${today}-${item.id}-${fileSlug(item.title || item.summary || item.topic || "item", item.topic || "item")}`;
-      const markdown = renderItemExport({
-        id: item.id,
-        summary: item.summary || item.normalized_content.slice(0, 80),
-        reason: item.reason || "No reason",
-        topic: item.topic || "general",
-        decision: item.decision || "archive",
-        capture_time: item.capture_time,
-        url: item.url || extractFirstUrl(item.raw_content)
-      }, item.raw_content);
-
-      const result = await this.ensureDoc(notebookId, item.id, hPath, markdown, itemMap);
-      itemMap[item.id] = {
-        mode: "api",
-        notebookId,
-        docId: result.docId,
-        path: result.hPath
-      };
-      this.itemRepository.save({
-        ...item,
-        siYuan_sync: {
-          exported: true,
-          mode: "api",
-          notebook_id: notebookId,
-          doc_id: result.docId,
-          path: result.hPath,
-          updated_at: nowIso()
-        },
-        status: "exported"
-      });
-      written.push(result.hPath);
-    }
-
-    const synthesisFiles = listFiles(this.config.paths.exportSynthesis, ".md");
-    for (const filePath of synthesisFiles) {
+    for (const entry of listEditorialFiles(this.config)) {
+      const filePath = entry.filePath;
       const parsed = matter(readTextFile(filePath));
       const fileName = path.basename(filePath, ".md");
       const synthesisId = getSynthesisId(parsed.data.id, fileName);
-      const hPath = `/synthesis/${fileName}`;
+      const title = String(parsed.data.title || fileName).trim() || fileName;
+      const hPath = `/${entry.section}/${sanitizeSiYuanTitle(title)}`;
       const markdown = parsed.content.trim() ? `${parsed.content.trim()}\n` : "";
       const result = await this.ensureDoc(notebookId, synthesisId, hPath, markdown, itemMap);
       itemMap[synthesisId] = {
@@ -189,4 +134,17 @@ function getSynthesisId(rawId: unknown, fileName: string): string {
   }
 
   return `synthesis:${fileName}`;
+}
+
+function listEditorialFiles(config: AppConfig): Array<{ filePath: string; section: string }> {
+  return [
+    ...listFiles(config.paths.editorialMorning, ".md").map((filePath) => ({ filePath, section: "晨间输出" })),
+    ...listFiles(config.paths.editorialEvening, ".md").map((filePath) => ({ filePath, section: "夜间回看" })),
+    ...listFiles(config.paths.editorialKnowledge, ".md").map((filePath) => ({ filePath, section: "知识沉淀" }))
+  ];
+}
+
+function sanitizeSiYuanTitle(value: string): string {
+  const cleaned = value.replace(/[\\/:*?"<>|#]/g, " ").replace(/\s+/g, " ").trim();
+  return cleaned.slice(0, 72) || "未命名文稿";
 }

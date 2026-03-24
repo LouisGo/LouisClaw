@@ -1,10 +1,9 @@
-import path from "node:path";
 import { loadConfig } from "../../app/config.js";
 import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { StateRepository, TaskRunStateEntry } from "../../infra/storage/state-repository.js";
 import { LandingFileService } from "../intake/landing-file.service.js";
 import { dateStamp, formatLocalDateTime, isSameLocalDate, timezoneLabel } from "../../shared/time.js";
-import { fileExists } from "../../shared/fs.js";
+import { listFiles } from "../../shared/fs.js";
 import { listTaskSchedules } from "../tasks/task-schedule-registry.js";
 import { OpenClawCronService } from "../tasks/openclaw-cron.service.js";
 
@@ -15,9 +14,11 @@ export function runStatusCommand(): void {
   const landingFileService = new LandingFileService(config);
   const today = dateStamp();
   const items = itemRepository.loadAll().filter((item) => isSameLocalDate(item.capture_time, today));
-  const digestPath = path.join(config.paths.digests, `${today}-daily-digest.md`);
   const landingOverview = landingFileService.overview();
   const taskRunState = stateRepository.loadTaskRunState();
+  const latestMorning = latestOutput(config.paths.editorialMorning);
+  const latestEvening = latestOutput(config.paths.editorialEvening);
+  const latestKnowledge = latestOutput(config.paths.editorialKnowledge);
 
   const counts = {
     total: items.length,
@@ -36,13 +37,12 @@ export function runStatusCommand(): void {
   console.log(`Landing total: ${landingOverview.total}`);
   console.log(`Landing supported: ${landingOverview.supported}`);
   console.log(`Landing ignored: ${landingOverview.ignored}`);
-  console.log(`Digest exists: ${fileExists(digestPath) ? "yes" : "no"}`);
-  if (fileExists(digestPath)) {
-    console.log(`Digest path: ${digestPath}`);
-  }
+  console.log(`Latest morning: ${latestMorning || "none"}`);
+  console.log(`Latest evening: ${latestEvening || "none"}`);
+  console.log(`Latest knowledge: ${latestKnowledge || "none"}`);
 
   console.log("Recent task runs:");
-  ["pull_markdown_sources", "pull_siyuan_inbox", "process_inbox", "build_morning_topic", "nightly_summary", "daily_pipeline"].forEach((taskId) => {
+  ["pull_markdown_sources", "pull_siyuan_inbox", "process_inbox", "build_morning_topic", "nightly_summary", "build_knowledge_note", "daily_pipeline"].forEach((taskId) => {
     console.log(`- ${taskId}: ${formatTaskRun(taskRunState[taskId])}`);
   });
 
@@ -93,4 +93,9 @@ function formatError(error: unknown): string {
   }
 
   return String(error);
+}
+
+function latestOutput(dirPath: string): string | undefined {
+  const files = listFiles(dirPath, ".md");
+  return files[files.length - 1];
 }

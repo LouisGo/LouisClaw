@@ -125,6 +125,10 @@ export interface AppConfig {
     exportItems: string;
     exportFollowUps: string;
     exportSynthesis: string;
+    editorialRoot: string;
+    editorialMorning: string;
+    editorialEvening: string;
+    editorialKnowledge: string;
     state: string;
     logs: string;
     siyuanExportRoot?: string;
@@ -228,6 +232,10 @@ export function loadConfig(): AppConfig {
       exportItems: path.join(exportsRoot, "items"),
       exportFollowUps: path.join(exportsRoot, "follow-ups"),
       exportSynthesis: path.join(exportsRoot, "synthesis"),
+      editorialRoot: path.join(exportsRoot, "editorial"),
+      editorialMorning: path.join(exportsRoot, "editorial", "morning"),
+      editorialEvening: path.join(exportsRoot, "editorial", "evening"),
+      editorialKnowledge: path.join(exportsRoot, "editorial", "knowledge"),
       state: path.join(dataRoot, "state"),
       logs: path.join(dataRoot, "logs"),
       siyuanExportRoot: env.SIYUAN_EXPORT_ROOT ? path.resolve(workspaceRoot, env.SIYUAN_EXPORT_ROOT) : undefined
@@ -285,6 +293,10 @@ function ensureDirectories(config: AppConfig): void {
   ensureDir(config.paths.exportItems);
   ensureDir(config.paths.exportFollowUps);
   ensureDir(config.paths.exportSynthesis);
+  ensureDir(config.paths.editorialRoot);
+  ensureDir(config.paths.editorialMorning);
+  ensureDir(config.paths.editorialEvening);
+  ensureDir(config.paths.editorialKnowledge);
   ensureDir(config.paths.state);
   ensureDir(config.paths.logs);
 }

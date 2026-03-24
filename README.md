@@ -87,8 +87,10 @@ Current built-in task ids:
 - `prepare_external_research`
 - `collect_external_research`
 - `build_morning_topic`
+- `report_morning_topic`
 - `build_digest`
 - `nightly_summary`
+- `report_nightly_summary`
 - `daily_pipeline`
 - `export_siyuan`
 
@@ -116,8 +118,10 @@ Current built-in schedule ids:
 - `morning_daily_ai_news_enrich` -> `enrich_daily_ai_news`
 - `morning_external_research_request` -> `prepare_external_research`
 - `morning_external_research_collect` -> `collect_external_research`
-- `morning_topic_push` -> `build_morning_topic`
-- `nightly_summary_push` -> `nightly_summary`
+- `morning_topic_build` -> `build_morning_topic`
+- `morning_topic_push` -> `report_morning_topic`
+- `nightly_summary_build` -> `nightly_summary`
+- `nightly_summary_push` -> `report_nightly_summary`
 
 The schedule layer is thin on purpose: it installs or updates OpenClaw cron jobs that tell the agent to run `npm run task -- run <task-id>`.
 
@@ -215,8 +219,10 @@ V1 behavior:
 - `morning_daily_ai_news_request`: 每天 `07:08`（Asia/Shanghai，默认不安装）
 - `morning_daily_ai_news_collect`: 每天 `07:18`（Asia/Shanghai，默认不安装）
 - `morning_daily_ai_news_enrich`: 每天 `07:26`（Asia/Shanghai，默认不安装）
-- `morning_topic_push`: 每天 `08:00`（Asia/Shanghai）
-- `nightly_summary_push`: 每天 `23:00`（Asia/Shanghai）
+- `morning_topic_build`: 每天 `08:00`（Asia/Shanghai，本地产物生成）
+- `morning_topic_push`: 每天 `08:02`（Asia/Shanghai，读取现成结果后推送）
+- `nightly_summary_build`: 每天 `23:00`（Asia/Shanghai，本地产物生成）
+- `nightly_summary_push`: 每天 `23:02`（Asia/Shanghai，读取现成结果后推送）
 
 ## Daily AI news module
 

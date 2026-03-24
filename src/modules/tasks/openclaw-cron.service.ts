@@ -129,6 +129,9 @@ export class OpenClawCronService {
       "main",
       "--session",
       "isolated",
+      "--light-context",
+      "--thinking",
+      "minimal",
       "--message",
       this.buildTaskMessage(schedule.taskId),
       "--timeout",
@@ -137,8 +140,11 @@ export class OpenClawCronService {
 
     if (!schedule.deliverResult) {
       args.push("--no-deliver");
-    } else if (config.openclawContext.feishuPushTarget) {
-      args.push("--channel", "feishu", "--to", config.openclawContext.feishuPushTarget);
+    } else {
+      args.push("--expect-final");
+      if (config.openclawContext.feishuPushTarget) {
+        args.push("--channel", "feishu", "--to", config.openclawContext.feishuPushTarget);
+      }
     }
 
     if (trigger.kind === "every") {
@@ -166,31 +172,15 @@ export class OpenClawCronService {
     const config = loadConfig();
 
     if (taskId === "build_morning_topic") {
-      return `请在当前工作区直接运行 \`npm run task -- run build_morning_topic\`。不要做额外改动。输入边界：最多参考 ${config.openclawContext.maxItems} 条 item 摘要、${config.openclawContext.maxPackets} 个 research packet、${config.openclawContext.maxDigests} 个 digest，不要扫描整个 data 目录。若当天存在 AI 新闻 packet，请一并渲染。完成后用简洁中文主动总结：今天的晨间专题标题、材料条数、AI 新闻条数、可去哪里阅读。`;
-    }
-
-    if (taskId === "collect_daily_ai_news") {
-      return "请在当前工作区直接运行 `npm run task -- run collect_daily_ai_news`。不要做额外改动，只执行这个标准任务，并用简洁中文总结结果。";
-    }
-
-    if (taskId === "prepare_daily_ai_news") {
-      return "请在当前工作区直接运行 `npm run task -- run prepare_daily_ai_news`。不要做额外改动，只执行这个标准任务，并用简洁中文总结结果。";
-    }
-
-    if (taskId === "enrich_daily_ai_news") {
-      return "请在当前工作区直接运行 `npm run task -- run enrich_daily_ai_news`。不要做额外改动，只执行这个标准任务，并用简洁中文总结结果。";
-    }
-
-    if (taskId === "collect_external_research") {
-      return `先检查 \`data/research/requests/\` 下是否存在最新的 pending research request；如果没有，就停止并简洁说明 skipped。若存在，则严格按 request 文件里的边界执行：只围绕该主题、只用高质量公开来源、最多读取 request 指定数量的来源、不做开放式延伸。不要读取超过 ${config.openclawContext.maxPackets} 个旧 research packet，也不要扫描无关 digest/item。完成后把 research packet 写入 request frontmatter 指定的 output_path，并把 request 的 frontmatter status 改成 completed。输出只需简洁说明：topic、sources used、packet path。`;
-    }
-
-    if (taskId === "prepare_external_research") {
-      return "请在当前工作区直接运行 `npm run task -- run prepare_external_research`。不要做额外改动，只执行这个标准任务，并用简洁中文总结结果。";
+      return `请在当前工作区直接运行 \`npm run task -- run build_morning_topic\`。不要做额外改动。只允许使用本地沉淀材料，不要扩展搜索。完成后用简洁中文总结：标题、主题、可阅读路径。`;
     }
 
     if (taskId === "nightly_summary") {
-      return "请在当前工作区直接运行 `npm run task -- run nightly_summary`。不要做额外改动。完成后严格按下面模板主动推送，不要过度缩写，也不要只发一句话：\n\n今日总结：<成功/失败>\nDigest 路径：<path>\n导出附件路径：<path>\n已同步到思源：<是/否>\n本次导出数量：<number>\n一句话说明：<今天这次总结的总体情况>\n\n如果任务失败，保留同样字段，并在一句话说明里写清失败原因。";
+      return "请在当前工作区直接运行 `npm run task -- run nightly_summary`。不要做额外改动。完成后用简洁中文总结：标题、主题、可阅读路径。";
+    }
+
+    if (taskId === "build_knowledge_note") {
+      return "请在当前工作区直接运行 `npm run task -- run build_knowledge_note`。不要做额外改动。只允许使用本地沉淀材料，不要做开放式搜索。完成后用简洁中文总结：标题、主题、可阅读路径。";
     }
 
     return `请在当前工作区直接运行 \`npm run task -- run ${taskId}\`。不要做额外改动，只执行这个标准任务，并用简洁中文总结结果。`;

@@ -1,11 +1,9 @@
 import path from "node:path";
 import matter from "gray-matter";
 import { AppConfig } from "../../app/config.js";
-import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { StateRepository } from "../../infra/storage/state-repository.js";
 import { listFiles, readTextFile, writeTextFile } from "../../shared/fs.js";
-import { nowIso, dateStamp } from "../../shared/time.js";
-import { extractFirstUrl, fileSlug } from "../../shared/text.js";
+import { ItemRepository } from "../../infra/storage/item-repository.js";
 import { SiYuanApiClient } from "./siyuan-api.client.js";
 import { SiYuanApiExportService } from "./siyuan-api-export.service.js";
 
@@ -41,62 +39,13 @@ export class SiYuanExportService {
     }
 
     const itemMap = this.stateRepository.loadSiYuanMap();
-    const today = dateStamp();
-    const items = this.itemRepository.loadAll().filter((item) => item.decision && item.decision !== "drop");
-
-    const written = items.map((item) => {
-      const section = item.decision === "follow_up" ? "follow-ups" : "items";
-      const existingPath = itemMap[item.id]?.path;
-      const fileName = `${today}-${item.id}-${fileSlug(item.title || item.summary || item.topic || "item", item.topic || "item")}.md`;
-      const targetPath = existingPath || path.join(this.config.paths.siyuanExportRoot as string, section, fileName);
-      const itemUrl = item.url || extractFirstUrl(item.raw_content);
-      const body = [
-        `# ${item.summary || item.title || item.id}`,
-        "",
-        `- Reason: ${item.reason || "No reason"}`,
-        ...(itemUrl ? [`- 来源链接: [打开原文](${itemUrl})`] : []),
-        "",
-        "## Source",
-        "",
-        item.raw_content,
-        ""
-      ].join("\n");
-
-      writeTextFile(targetPath, matter.stringify(body, {
-        id: item.id,
-        created_by: "ai-flow",
-        source_item_id: item.id,
-        decision: item.decision,
-        topic: item.topic || "general",
-        capture_time: item.capture_time
-      }));
-
-      itemMap[item.id] = {
-        mode: "filesystem",
-        path: targetPath
-      };
-      this.itemRepository.save({
-        ...item,
-        siYuan_sync: {
-          exported: true,
-          mode: "filesystem",
-          path: targetPath,
-          updated_at: nowIso()
-        },
-        status: "exported"
-      });
-
-      return targetPath;
-    });
-
-    const synthesisWritten = listFiles(this.config.paths.exportSynthesis, ".md").map((filePath) => {
-      const parsed = matter(readTextFile(filePath));
-      const fileName = path.basename(filePath);
-      const synthesisId = getSynthesisId(parsed.data.id, path.basename(filePath, ".md"));
-      const existingPath = itemMap[synthesisId]?.path;
-      const targetPath = existingPath || path.join(this.config.paths.siyuanExportRoot as string, "synthesis", fileName);
-      writeTextFile(targetPath, readTextFile(filePath));
-      itemMap[synthesisId] = {
+    const editorialWritten = listEditorialFiles(this.config).map((entry) => {
+      const parsed = matter(readTextFile(entry.filePath));
+      const exportId = getSynthesisId(parsed.data.id, path.basename(entry.filePath, ".md"));
+      const existingPath = itemMap[exportId]?.path;
+      const targetPath = existingPath || path.join(this.config.paths.siyuanExportRoot as string, entry.folderName, path.basename(entry.filePath));
+      writeTextFile(targetPath, readTextFile(entry.filePath));
+      itemMap[exportId] = {
         mode: "filesystem",
         path: targetPath
       };
@@ -104,7 +53,7 @@ export class SiYuanExportService {
     });
 
     this.stateRepository.saveSiYuanMap(itemMap);
-    return [...written, ...synthesisWritten];
+    return editorialWritten;
   }
 }
 
@@ -114,4 +63,12 @@ function getSynthesisId(rawId: unknown, fileName: string): string {
   }
 
   return `synthesis:${fileName}`;
+}
+
+function listEditorialFiles(config: AppConfig): Array<{ filePath: string; folderName: string }> {
+  return [
+    ...listFiles(config.paths.editorialMorning, ".md").map((filePath) => ({ filePath, folderName: "晨间输出" })),
+    ...listFiles(config.paths.editorialEvening, ".md").map((filePath) => ({ filePath, folderName: "夜间回看" })),
+    ...listFiles(config.paths.editorialKnowledge, ".md").map((filePath) => ({ filePath, folderName: "知识沉淀" }))
+  ];
 }
